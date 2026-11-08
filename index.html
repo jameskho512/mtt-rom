@@ -1,0 +1,3168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D ROM & MMT Interactive Anatomy Visualizer (All 23 Movements)</title>
+  <style>
+    :root {
+      --bg-top: #7d5b3f;
+      --bg-mid: #31254c;
+      --bg-bot: #05030a;
+      --panel-bg: rgba(14, 11, 24, 0.84);
+      --panel-border: rgba(215, 195, 255, 0.16);
+      --text-primary: #f5f2ff;
+      --text-secondary: #b9b0d4;
+      --text-muted: #7e749c;
+      --accent-glow: #c8b6ff;
+      --accent-primary: #9d7bff;
+      --accent-rom: #38bdf8;
+      --accent-mmt: #f59e0b;
+      --accent-resist: #ef4444;
+      --accent-palpate: #10b981;
+      --accent-stabilize: #3b82f6;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      color: var(--text-primary);
+      background: linear-gradient(180deg, var(--bg-top) 0%, #523b52 28%, var(--bg-mid) 58%, var(--bg-bot) 100%);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      user-select: none;
+    }
+
+    /* 3D Viewport */
+    #viewport-container {
+      position: relative;
+      flex: 1;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #three-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    #three-canvas:active {
+      cursor: grabbing;
+    }
+
+    /* Left Control Sidebar */
+    .sidebar {
+      width: 400px;
+      min-width: 350px;
+      max-width: 92vw;
+      height: 100%;
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-right: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      padding: 16px 18px;
+      gap: 13px;
+      overflow-y: auto;
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 11px;
+    }
+
+    .brand-title {
+      font-size: 1.04rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(157, 123, 255, 0.18);
+      border: 1px solid rgba(200, 182, 255, 0.35);
+      color: var(--accent-glow);
+    }
+
+    /* 5 Core Controls Section */
+    .mode-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+    }
+
+    .mode-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent-glow);
+      margin-bottom: 1px;
+    }
+
+    .btn-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .ctrl-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      min-height: 44px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: 0.84rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(200, 182, 255, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .ctrl-btn:active {
+      transform: translateY(0);
+    }
+
+    .ctrl-btn:focus-visible {
+      outline: 2px solid var(--accent-glow);
+      outline-offset: 2px;
+    }
+
+    .ctrl-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent-glow);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ctrl-btn.active-rom {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--accent-rom);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.22);
+    }
+    .ctrl-btn.active-rom .ctrl-num {
+      background: var(--accent-rom);
+      color: #06131f;
+    }
+
+    .ctrl-btn.active-mmt {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: var(--accent-mmt);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.22);
+    }
+    .ctrl-btn.active-mmt .ctrl-num {
+      background: var(--accent-mmt);
+      color: #1c1002;
+    }
+
+    .ctrl-btn.active-resist {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: var(--accent-resist);
+      box-shadow: 0 0 18px rgba(239, 68, 68, 0.28);
+    }
+    .ctrl-btn.active-resist .ctrl-num {
+      background: var(--accent-resist);
+      color: #fff;
+    }
+
+    .toggle-pill {
+      margin-left: auto;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .ctrl-btn.active-rom .toggle-pill {
+      background: var(--accent-rom);
+      color: #04131d;
+    }
+
+    .ctrl-btn.active-resist .toggle-pill {
+      background: var(--accent-resist);
+      color: #ffffff;
+    }
+
+    /* Interactive Angle Scrubber */
+    .scrubber-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .scrubber-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+    }
+
+    .angle-readout {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      font-size: 0.94rem;
+      color: var(--accent-rom);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-rom);
+      cursor: pointer;
+      height: 6px;
+    }
+
+    /* Clinical Info Card */
+    .clinical-card {
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .clinical-block {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .clinical-block:last-child {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .clinical-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tag-rom { color: var(--accent-rom); }
+    .tag-mmt { color: var(--accent-mmt); }
+
+    .kv-row {
+      font-size: 0.79rem;
+      line-height: 1.38;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 6px;
+    }
+
+    .kv-row strong {
+      color: var(--text-primary);
+      font-weight: 600;
+      min-width: 76px;
+      flex-shrink: 0;
+    }
+
+    .marker-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .dot-stab { background: radial-gradient(circle, #e0f2fe 0%, #3b82f6 50%, rgba(56,189,248,0.15) 100%); box-shadow: 0 0 10px var(--accent-stabilize); }
+    .dot-palp { background: radial-gradient(circle, #ecfdf5 0%, #10b981 50%, rgba(250,204,21,0.2) 100%); box-shadow: 0 0 10px var(--accent-palpate); }
+    .dot-res  { background: radial-gradient(circle, #ffe4e6 0%, #ef4444 48%, rgba(253,224,71,0.35) 100%); box-shadow: 0 0 10px var(--accent-resist); }
+
+    /* Top Floating HUD Overlay inside 3D Viewport */
+    .viewport-hud {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 10;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hud-pill {
+      pointer-events: auto;
+      background: rgba(14, 11, 24, 0.78);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 10px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .hud-movement-name {
+      font-size: 1.08rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .hud-state-badge {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent-rom);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .camera-bar {
+      pointer-events: auto;
+      display: flex;
+      gap: 6px;
+      background: rgba(14, 11, 24, 0.78);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-md);
+      padding: 6px;
+      flex-wrap: wrap;
+    }
+
+    .cam-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .cam-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .cam-btn.highlight {
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #7dd3fc;
+    }
+
+    /* Legend Overlay Bottom Right */
+    .viewport-legend {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(14, 11, 24, 0.8);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-md);
+      padding: 9px 14px;
+      display: flex;
+      gap: 14px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      pointer-events: none;
+      z-index: 10;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 3D Floating HTML Callout Labels */
+    #labels-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 5;
+    }
+
+    .marker-label {
+      position: absolute;
+      transform: translate(-50%, -135%);
+      padding: 4px 9px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      color: #fff;
+      background: rgba(12, 10, 22, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+      transition: opacity 0.15s ease;
+      opacity: 0;
+    }
+
+    .marker-label.visible {
+      opacity: 1;
+    }
+
+    .marker-label.stab { border-color: var(--accent-stabilize); color: #93c5fd; }
+    .marker-label.palp { border-color: var(--accent-palpate); color: #6ee7b7; }
+    .marker-label.motion { border-color: #facc15; color: #facc15; }
+    .marker-label.res  { border-color: var(--accent-resist); color: #fca5a5; }
+    .marker-label.goni { border-color: var(--accent-rom); color: #7dd3fc; font-variant-numeric: tabular-nums; }
+
+    /* MMT callouts are positioned by the collision-aware layout (top-left anchored, no centering transform) */
+    .marker-label.callout {
+      transform: none;
+      transition: opacity 0.15s ease;
+    }
+
+    #leader-lines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    body { display: grid; grid-template-columns: 250px 350px minmax(0, 1fr); height: 100dvh; }
+    .sidebar { width: 350px; min-width: 0; max-width: none; }
+    #viewport-container { min-width: 0; }
+    .movement-column { overflow-y: auto; height: 100%; padding: 16px 12px; background: #12101d; border-right: 1px solid var(--panel-border); }
+    .movement-heading { font-weight: 700; font-size: 1rem; padding: 0 6px 12px; display: flex; justify-content: space-between; }
+    .movement-heading span { color: var(--accent-rom); }
+    .movement-group { margin-bottom: 16px; }
+    .movement-group h2 { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: #c9c1dc; padding: 8px 6px; }
+    .movement-item { display: flex; flex-direction: column; gap: 3px; width: 100%; min-height: 44px; padding: 9px 10px; margin: 3px 0; border: 1px solid transparent; border-radius: 8px; color: #eeeaf6; background: transparent; text-align: left; cursor: pointer; font: inherit; font-size: .81rem; }
+    .movement-item small { color: #bcb3cf; font-variant-numeric: tabular-nums; }
+    .movement-item:hover { background: #252036; }
+    .movement-item[aria-pressed="true"] { background: #153b50; border-color: #38bdf8; box-shadow: inset 3px 0 #38bdf8; color: #fff; }
+    .movement-item[aria-pressed="true"] small { color: #b4e9ff; }
+    button:focus-visible, a:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+    .clinical-note { font-size: .76rem; line-height: 1.5; color: #c9c1dc; }
+    .clinical-note a { color: #9bdfff; }
+    .kv-row span { min-width: 0; overflow-wrap: anywhere; }
+    @media (max-width: 1100px) { body { grid-template-columns: 220px 310px minmax(0, 1fr); } .sidebar { width: 310px; padding: 14px; } }
+    @media (max-width: 850px) {
+      body { grid-template-columns: 190px minmax(0, 1fr); grid-template-rows: 48dvh 52dvh; }
+      .movement-column { grid-column: 1; grid-row: 1 / 3; }
+      .sidebar { grid-column: 2; grid-row: 2; width: 100%; height: 100%; border-top: 1px solid var(--panel-border); }
+      #viewport-container { grid-column: 2; grid-row: 1; height: 100%; }
+      .hud-movement-name { font-size: .9rem; } .camera-bar { gap: 3px; } .cam-btn { min-height: 44px; }
+      .viewport-hud { top: 8px; left: 8px; right: 8px; gap: 6px; }
+      .viewport-legend { display: none; }
+    }
+    @media (max-width: 480px) { body { grid-template-columns: 138px minmax(0, 1fr); } .movement-column { padding: 12px 6px; } .movement-item { font-size: .74rem; padding: 8px 6px; } .sidebar { padding: 10px; } .btn-grid-2 { grid-template-columns: 1fr; } .brand-badge { display: none; } .kv-row { flex-direction: column; gap: 2px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+
+    /* Allocate the available column height across all 23 single-line motions. */
+    body { grid-template-columns: 230px 320px minmax(0, 1fr); }
+    .sidebar { width: 320px; }
+    .movement-column { display: flex; flex-direction: column; overflow: hidden; min-height: 0; padding: 8px; gap: 3px; }
+    .movement-heading { flex: 0 0 24px; padding: 0 5px 4px; font-size: min(14px, 1.9dvh); align-items: center; }
+    .movement-group { display: flex; flex-direction: column; flex: 4 1 0; min-height: 0; margin: 0; }
+    .movement-group:first-of-type { flex-grow: 7; }
+    .movement-group h2 { flex: 0 0 min(19px, 2.6dvh); display: flex; align-items: center; margin: 0; padding: 0 5px; font-size: min(10px, 1.4dvh); }
+    .movement-item { flex: 1 1 0; flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; min-height: 0; margin: 0; padding: 0 6px; border-radius: 5px; font-size: min(12px, 1.65dvh); line-height: 1; white-space: nowrap; }
+    .movement-item span { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .movement-item small { flex-shrink: 0; font-size: .91em; white-space: nowrap; }
+    @media (max-width: 1100px) { body { grid-template-columns: 220px 290px minmax(0, 1fr); } .sidebar { width: 290px; } }
+    @media (max-width: 850px) { body { grid-template-columns: 205px minmax(0, 1fr); } .sidebar { width: 100%; } }
+    @media (max-width: 480px) { body { grid-template-columns: 175px minmax(0, 1fr); } .movement-column { padding: 6px 4px; } .movement-item { padding: 0 4px; gap: 3px; font-size: min(10px, 1.65dvh); } }
+  </style>
+  <!-- Import Three.js & OrbitControls via CDN -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <nav class="movement-column" aria-label="Anatomical movements"><div class="movement-heading">Movements <span>23</span></div>
+    <section class="movement-group" aria-label="Shoulder"><h2>Shoulder</h2>
+      <button type="button" class="movement-item" data-movement="shoulder_abduction" aria-pressed="true" title="Shoulder Abduction (0–170°)" aria-label="1. Shoulder Abduction (0–170°)"><span>1. Abduction</span><small>0–170°</small></button>
+      <button type="button" class="movement-item" data-movement="shoulder_flexion" aria-pressed="false" title="Shoulder Flexion (0–170°)" aria-label="2. Shoulder Flexion (0–170°)"><span>2. Flexion</span><small>0–170°</small></button>
+      <button type="button" class="movement-item" data-movement="shoulder_extension" aria-pressed="false" title="Shoulder Extension (0–60°)" aria-label="3. Shoulder Extension (0–60°)"><span>3. Extension</span><small>0–60°</small></button>
+      <button type="button" class="movement-item" data-movement="shoulder_ir" aria-pressed="false" title="Shoulder Internal Rotation (0–60°)" aria-label="4. Shoulder Internal Rotation (0–60°)"><span>4. Internal Rotation</span><small>0–60°</small></button>
+      <button type="button" class="movement-item" data-movement="shoulder_er" aria-pressed="false" title="Shoulder External Rotation (0–80°)" aria-label="5. Shoulder External Rotation (0–80°)"><span>5. External Rotation</span><small>0–80°</small></button>
+      <button type="button" class="movement-item" data-movement="shoulder_horiz_add" aria-pressed="false" title="Shoulder Horizontal Adduction (0–130°)" aria-label="6. Shoulder Horizontal Adduction (0–130°)"><span>6. Horiz. Adduction</span><small>0–130°</small></button>
+      <button type="button" class="movement-item" data-movement="shoulder_horiz_abd" aria-pressed="false" title="Shoulder Horizontal Abduction (0–45°)" aria-label="7. Shoulder Horizontal Abduction (0–45°)"><span>7. Horiz. Abduction</span><small>0–45°</small></button></section>
+    <section class="movement-group" aria-label="Elbow &amp; Forearm"><h2>Elbow &amp; Forearm</h2>
+      <button type="button" class="movement-item" data-movement="elbow_flexion" aria-pressed="false" title="Elbow Flexion (0–145°)" aria-label="8. Elbow Flexion (0–145°)"><span>8. Elbow Flexion</span><small>0–145°</small></button>
+      <button type="button" class="movement-item" data-movement="elbow_extension" aria-pressed="false" title="Elbow Extension (145–0°)" aria-label="9. Elbow Extension (145–0°)"><span>9. Elbow Extension</span><small>145–0°</small></button>
+      <button type="button" class="movement-item" data-movement="forearm_pronation" aria-pressed="false" title="Forearm Pronation (0–85°)" aria-label="10. Forearm Pronation (0–85°)"><span>10. Pronation</span><small>0–85°</small></button>
+      <button type="button" class="movement-item" data-movement="forearm_supination" aria-pressed="false" title="Forearm Supination (0–85°)" aria-label="11. Forearm Supination (0–85°)"><span>11. Supination</span><small>0–85°</small></button></section>
+    <section class="movement-group" aria-label="Wrist"><h2>Wrist</h2>
+      <button type="button" class="movement-item" data-movement="wrist_flexion" aria-pressed="false" title="Wrist Flexion (0–80°)" aria-label="12. Wrist Flexion (0–80°)"><span>12. Flexion</span><small>0–80°</small></button>
+      <button type="button" class="movement-item" data-movement="wrist_extension" aria-pressed="false" title="Wrist Extension (0–70°)" aria-label="13. Wrist Extension (0–70°)"><span>13. Extension</span><small>0–70°</small></button>
+      <button type="button" class="movement-item" data-movement="wrist_ulnar_dev" aria-pressed="false" title="Wrist Ulnar Deviation (0–30°)" aria-label="14. Wrist Ulnar Deviation (0–30°)"><span>14. Ulnar Deviation</span><small>0–30°</small></button>
+      <button type="button" class="movement-item" data-movement="wrist_radial_dev" aria-pressed="false" title="Wrist Radial Deviation (0–20°)" aria-label="15. Wrist Radial Deviation (0–20°)"><span>15. Radial Deviation</span><small>0–20°</small></button></section>
+    <section class="movement-group" aria-label="Thumb"><h2>Thumb</h2>
+      <button type="button" class="movement-item" data-movement="thumb_radial_abd" aria-pressed="false" title="Thumb Radial ABD / CMC Ext (0–50°)" aria-label="16. Thumb Radial ABD / CMC Ext (0–50°)"><span>16. Radial ABD / CMC ext</span><small>0–50°</small></button>
+      <button type="button" class="movement-item" data-movement="thumb_palmar_abd" aria-pressed="false" title="Thumb Palmar ABD / CMC Abd (0–50°)" aria-label="17. Thumb Palmar ABD / CMC Abd (0–50°)"><span>17. Palmar ABD / CMC abd</span><small>0–50°</small></button>
+      <button type="button" class="movement-item" data-movement="thumb_mp_flexion" aria-pressed="false" title="Thumb MP Flexion (0–50°)" aria-label="18. Thumb MP Flexion (0–50°)"><span>18. MP Flexion</span><small>0–50°</small></button>
+      <button type="button" class="movement-item" data-movement="thumb_ip_flexion" aria-pressed="false" title="Thumb IP Flexion (0–90°)" aria-label="19. Thumb IP Flexion (0–90°)"><span>19. IP Flexion</span><small>0–90°</small></button></section>
+    <section class="movement-group" aria-label="Fingers"><h2>Fingers</h2>
+      <button type="button" class="movement-item" data-movement="finger_mcp_flexion" aria-pressed="false" title="Finger MCP Flexion (0–90°)" aria-label="20. Finger MCP Flexion (0–90°)"><span>20. MCP Flexion</span><small>0–90°</small></button>
+      <button type="button" class="movement-item" data-movement="finger_mcp_hyperext" aria-pressed="false" title="Finger MCP Hyperextension (0–45°)" aria-label="21. Finger MCP Hyperextension (0–45°)"><span>21. MCP Hyperextension</span><small>0–45°</small></button>
+      <button type="button" class="movement-item" data-movement="finger_pip_flexion" aria-pressed="false" title="Finger PIP Flexion (0–110°)" aria-label="22. Finger PIP Flexion (0–110°)"><span>22. PIP Flexion</span><small>0–110°</small></button>
+      <button type="button" class="movement-item" data-movement="finger_dip_flexion" aria-pressed="false" title="Finger DIP Flexion (0–80°)" aria-label="23. Finger DIP Flexion (0–80°)"><span>23. DIP Flexion</span><small>0–80°</small></button></section>
+  </nav>
+  <!-- Position and clinical controls -->
+  <aside class="sidebar" aria-label="Movement and Position Controls">
+    <div class="brand-header">
+      <div class="brand-title">
+        <span>3D ROM &amp; MMT Lab</span>
+      </div>
+      <span class="brand-badge">All 23 Movements</span>
+    </div>
+
+    <div id="posture-indicator" class="control-label">Client: Seated</div>
+    <!-- 5 Required Position & Animation Controls -->
+    <div class="mode-section" role="group" aria-label="ROM and MMT Position Controls">
+      <div class="mode-section-header">
+        <span>Range of Motion (ROM)</span>
+        <span id="rom-range-badge">0° – 170°</span>
+      </div>
+
+      <div class="btn-grid-2">
+        <!-- 1. Starting Position -->
+        <button type="button" class="ctrl-btn" id="btn-start" title="Show anatomical starting position (0°)">
+          <span class="ctrl-num">1</span>
+          <span>Start Position</span>
+        </button>
+
+        <!-- 2. Ending Position -->
+        <button type="button" class="ctrl-btn" id="btn-end" title="Show end of normal Range of Motion">
+          <span class="ctrl-num">2</span>
+          <span>End Position</span>
+        </button>
+      </div>
+
+      <!-- 3. Toggle Animation between Start and End -->
+      <button type="button" class="ctrl-btn active-rom" id="btn-anim-rom" aria-pressed="true" title="Toggle one-way animation from Start to End ROM (500ms hold at end, then warp to start)">
+        <span class="ctrl-num">3</span>
+        <span>Animate Start → End ROM</span>
+        <span class="toggle-pill" id="pill-anim-rom">ON</span>
+      </button>
+
+      <div class="mode-section-header" style="margin-top: 6px; color: var(--accent-mmt);">
+        <span>Manual Muscle Testing (MMT)</span>
+        <span id="mmt-posture-badge">Seated</span>
+      </div>
+
+      <!-- 4. MMT Position -->
+      <button type="button" class="ctrl-btn" id="btn-mmt" title="Place client in standardized MMT testing posture & show Stabilize/Palpate markers">
+        <span class="ctrl-num">4</span>
+        <span>MMT Test Position</span>
+      </button>
+
+      <!-- 5. Toggle Resistance Animation against MMT -->
+      <button type="button" class="ctrl-btn" id="btn-anim-resist" aria-pressed="false" title="Animate resisted effort with small joint movement against examiner force">
+        <span class="ctrl-num">5</span>
+        <span>Resist Against MMT</span>
+        <span class="toggle-pill" id="pill-anim-resist">OFF</span>
+      </button>
+    </div>
+
+    <!-- Interactive ROM Angle Scrubber -->
+    <div class="scrubber-box">
+      <div class="scrubber-top">
+        <span style="color: var(--text-secondary); font-weight: 600;">Joint Angle / Progress</span>
+        <span class="angle-readout" id="angle-readout">0° / 170°</span>
+      </div>
+      <input type="range" id="angle-slider" min="0" max="100" value="0" aria-label="Scrub movement progress" />
+    </div>
+
+  </aside>
+
+  <!-- 3D Viewport Area -->
+  <main id="viewport-container">
+    <div class="viewport-hud">
+      <div class="hud-pill">
+        <div class="hud-movement-name" id="hud-title">Shoulder Abduction</div>
+        <div class="hud-state-badge" id="hud-subtitle">1. Starting Position (0°)</div>
+      </div>
+
+      <div class="camera-bar" role="group" aria-label="Camera Presets">
+        <button type="button" class="cam-btn" data-cam="front">Front</button>
+        <button type="button" class="cam-btn" data-cam="side">Right Side</button>
+        <button type="button" class="cam-btn" data-cam="top">Top</button>
+        <button type="button" class="cam-btn" data-cam="threequarter">Full Body 3/4</button>
+        <button type="button" class="cam-btn highlight" data-cam="hand">🔍 Zoom Hand</button>
+        <button type="button" class="cam-btn" id="btn-toggle-table" title="Toggle Exam Plinth / Hand Table">Table: Auto</button>
+      </div>
+    </div>
+
+    <!-- 3D Floating Callout Badges -->
+    <div id="labels-layer">
+      <svg id="leader-lines" aria-hidden="true">
+        <line id="leader-stab" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="4 3" />
+        <line id="leader-palp" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4 3" />
+        <line id="leader-res"  stroke="#f87171" stroke-width="1.5" stroke-dasharray="4 3" />
+        <line id="leader-motion" stroke="#facc15" stroke-width="1.5" stroke-dasharray="4 3" />
+      </svg>
+      <div id="label-goni" class="marker-label goni">0°</div>
+      <div id="label-stab" class="marker-label stab callout">Stabilize</div>
+      <div id="label-palp" class="marker-label palp callout">Palpate</div>
+      <div id="label-res"  class="marker-label res callout">Resistance Area</div>
+      <div id="label-motion" class="marker-label motion callout">Client Movement</div>
+    </div>
+
+    <div class="viewport-legend">
+      <div class="legend-item"><span class="marker-dot" style="background: var(--accent-rom);"></span> Goniometer Arc</div>
+      <div class="legend-item"><span class="marker-dot dot-stab"></span> Stabilize (Blue)</div>
+      <div class="legend-item"><span class="marker-dot dot-palp"></span> Palpate Muscle (Green)</div>
+      <div class="legend-item"><span class="marker-dot dot-res"></span> Resist Area (Red)</div>
+      <div class="legend-item"><span class="marker-dot" style="background: #facc15; box-shadow: 0 0 8px #facc15;"></span> Client Movement (Yellow)</div>
+    </div>
+
+    <canvas id="three-canvas"></canvas>
+  </main>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // =========================================================================
+    // 1. POSE HELPER & FULL 23-MOVEMENT CLINICAL DATABASE
+    // =========================================================================
+    // Joint Degrees of Freedom on Right Upper Extremity + Articulated Hand:
+    // Upper Extremity:
+    //   Body faces +Z (nose, toes, chest). Right arm sits at -X; +X is medial for the right arm.
+    //   shFlex:  Shoulder flexion (+deg moves arm forward to +Z) / extension (-deg moves arm back to -Z)
+    //   shAbd:   Shoulder abduction (-Z moves right arm laterally out)
+    //   shHoriz: Shoulder horizontal adduction (+Y across chest) / abduction (-Y back)
+    //   shRot:   Shoulder internal (+Y axial) / external (-Y axial) rotation
+    //   elFlex:  Elbow flexion (+deg brings forearm forward to +Z when arm at side)
+    //   faPro:   Forearm rotation: 0 = neutral (thumb up, palm medial +X),
+    //                              -90 = pronated (palm down -Y, thumb medial +X),
+    //                              +90 = supinated (palm up +Y, thumb lateral -X)
+    // Wrist:
+    //   wrFlex:  Wrist flexion (+deg bends palm toward volar/+X side) / extension (-deg bends toward dorsal/-X)
+    //   wrDev:   Wrist radial deviation (+deg bends toward thumb/+Z) / ulnar deviation (-deg bends toward pinky/-Z)
+    // Thumb:
+    //   thCmcExt: Thumb radial abduction / CMC extension (+deg lifts thumb in plane of palm along +Z)
+    //   thCmcAbd: Thumb palmar abduction / CMC abduction (+deg lifts thumb perpendicular to palm along +X)
+    //   thMpFlex: Thumb MP flexion (+deg bends proximal phalanx into palm)
+    //   thIpFlex: Thumb IP flexion (+deg bends distal phalanx)
+    // Fingers (Index through Little):
+    //   fMcpFlex: Finger MCP flexion (+deg bends into palm; -deg hyperextends)
+    //   fPipFlex: Finger PIP flexion (+deg bends middle phalanx)
+    //   fDipFlex: Finger DIP flexion (+deg bends distal phalanx)
+    //   singleFingerTest: If true, highlights/moves Index finger primarily while keeping others in reference posture
+    // =========================================================================
+
+    const DEFAULT_POSE = {
+      shFlex: 0, shAbd: 0, shHoriz: 0, shRot: 0, elFlex: 0, faPro: 0,
+      wrFlex: 0, wrDev: 0,
+      thCmcExt: 0, thCmcAbd: 0, thMpFlex: 0, thIpFlex: 0,
+      fMcpFlex: 0, fPipFlex: 0, fDipFlex: 0
+    };
+
+    function P(overrides) {
+      return { ...DEFAULT_POSE, ...overrides };
+    }
+
+    const MOVEMENTS = {
+      // ==================== PAGE 1: SHOULDER (7) ====================
+      shoulder_abduction: {
+        name: "Shoulder Abduction",
+        category: "upper",
+        maxAngle: 170,
+        romPosture: "seated",
+        mmtPosture: "seated",
+        romInfo: {
+          range: "0–170°",
+          position: "Seated; elbow straight. Allow scapular upward rotation and humeral external rotation during overhead elevation.",
+          axis: "Anterior acromion; stationary arm parallel to sternum; moving arm along humerus.",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, at 90° abduction, palm down",
+          stabilize: "Top of scapula/shoulder (trap area)",
+          palpate: "Middle deltoid",
+          resist: "Distal humerus, push down"
+        },
+        startPose: P({}),
+        endPose:   P({ shAbd: 170 }),
+        mmtPose:   P({ shAbd: 90, faPro: 0 }), // palm faces down at neutral when abducted 90°
+        resistDelta: P({ shAbd: -7 }),
+        goniPlane: "coronal",
+        markers: {
+          stabilize: { bone: "thorax", offset: new THREE.Vector3(-0.14, 0.43, 0.0) },
+          palpate:   { bone: "upperArm", offset: new THREE.Vector3(-0.06, -0.09, 0.0) },
+          resist:    { bone: "upperArm", offset: new THREE.Vector3(-0.036, -0.24, 0.0), dir: new THREE.Vector3(0, -1, 0), patientDir: new THREE.Vector3(0, 1, 0) }
+        }
+      },
+
+      shoulder_flexion: {
+        name: "Shoulder Flexion",
+        category: "upper",
+        maxAngle: 170,
+        romPosture: "seated",
+        mmtPosture: "seated",
+        romInfo: {
+          range: "0–170°",
+          position: "Seated or supine, wrist neutral",
+          axis: "Lateral shoulder near greater tubercle; stationary arm along midaxillary thorax; moving arm toward lateral epicondyle.",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, at 90° flexion, palm down",
+          stabilize: "Top of scapula/shoulder (trap area)",
+          palpate: "Anterior deltoid",
+          resist: "Distal humerus, push down"
+        },
+        startPose: P({}),
+        endPose:   P({ shFlex: 170 }),
+        mmtPose:   P({ shFlex: 90, faPro: -90 }),
+        resistDelta: P({ shFlex: -7 }),
+        goniPlane: "sagittal",
+        markers: {
+          stabilize: { bone: "thorax", offset: new THREE.Vector3(-0.14, 0.43, 0.0) },
+          palpate:   { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.06, 0.06) },
+          resist:    { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.24, 0.038), dir: new THREE.Vector3(0, -1, 0), patientDir: new THREE.Vector3(0, 1, 0) }
+        }
+      },
+
+      shoulder_extension: {
+        name: "Shoulder Extension",
+        category: "upper",
+        maxAngle: 60,
+        romPosture: "seated",
+        mmtPosture: "prone",
+        romInfo: {
+          range: "0–60°",
+          position: "Seated or prone, wrist neutral",
+          axis: "Lateral shoulder near greater tubercle; stationary arm along midaxillary thorax; moving arm toward lateral epicondyle.",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Prone, palm up",
+          stabilize: "Top of scapula/shoulder (trap area)",
+          palpate: "Teres major / lats",
+          resist: "Distal humerus, push down"
+        },
+        startPose: P({}),
+        endPose:   P({ shFlex: -60 }),
+        mmtPose:   P({ shFlex: -45, faPro: -90 }),
+        resistDelta: P({ shFlex: 6 }),
+        goniPlane: "sagittal_ext",
+        markers: {
+          stabilize: { bone: "thorax", offset: new THREE.Vector3(-0.15, 0.40, -0.08) },
+          palpate:   { bone: "thorax", offset: new THREE.Vector3(-0.16, 0.25, -0.09) },
+          resist:    { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.24, -0.038), dir: new THREE.Vector3(0, -1, 0), patientDir: new THREE.Vector3(0, 1, 0) }
+        }
+      },
+
+      shoulder_ir: {
+        name: "Shoulder Internal Rotation",
+        category: "upper",
+        maxAngle: 60,
+        romPosture: "seated",
+        mmtPosture: "prone",
+        romInfo: {
+          range: "0–60°",
+          position: "Seated or supine; shoulder ABD 90°, elbow 90°, forearm neutral",
+          axis: "Olecranon; stationary arm parallel to floor along the neutral forearm direction for this seated setup; moving arm along ulna.",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Prone, shoulder ABD 90°, arm hanging off table, palm moves up",
+          stabilize: "Distal humerus (underneath)",
+          palpate: "Subscapularis / teres major",
+          resist: "Distal forearm"
+        },
+        startPose: P({ shAbd: 90, elFlex: 90, faPro: 0 }),
+        endPose:   P({ shAbd: 90, shRot: 60, elFlex: 90, faPro: 0 }),
+        mmtPose:   P({ shAbd: 90, shRot: 50, elFlex: 90, faPro: 0 }),
+        resistDelta: P({ shRot: -8 }),
+        goniPlane: "elbow_rot",
+        markers: {
+          stabilize: { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.22, 0.04) },
+          palpate:   { bone: "thorax", offset: new THREE.Vector3(-0.17, 0.28, -0.03) },
+          resist:    { bone: "forearm", offset: new THREE.Vector3(0.030, -0.20, 0.0), dir: new THREE.Vector3(0, -1, 0.3).normalize(), patientDir: new THREE.Vector3(0, 1, -0.3).normalize() }
+        }
+      },
+
+      shoulder_er: {
+        name: "Shoulder External Rotation",
+        category: "upper",
+        maxAngle: 80,
+        romPosture: "seated",
+        mmtPosture: "prone",
+        romInfo: {
+          range: "0–80°",
+          position: "Seated or supine; humerus ABD 90°, elbow 90°, forearm neutral",
+          axis: "Olecranon; stationary arm parallel to floor along the neutral forearm direction for this seated setup; moving arm along ulna.",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Prone, shoulder ABD 90°, arm hanging off table, back of hand toward ceiling",
+          stabilize: "Distal humerus",
+          palpate: "Infraspinatus / teres minor",
+          resist: "Distal forearm"
+        },
+        startPose: P({ shAbd: 90, elFlex: 90, faPro: 0 }),
+        endPose:   P({ shAbd: 90, shRot: -80, elFlex: 90, faPro: 0 }),
+        mmtPose:   P({ shAbd: 90, shRot: -65, elFlex: 90, faPro: 0 }),
+        resistDelta: P({ shRot: 8 }),
+        goniPlane: "elbow_rot",
+        markers: {
+          stabilize: { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.22, 0.04) },
+          palpate:   { bone: "thorax", offset: new THREE.Vector3(-0.12, 0.32, -0.11) },
+          resist:    { bone: "forearm", offset: new THREE.Vector3(-0.030, -0.20, 0.0), dir: new THREE.Vector3(0, -1, -0.3).normalize(), patientDir: new THREE.Vector3(0, 1, 0.3).normalize() }
+        }
+      },
+
+      shoulder_horiz_add: {
+        name: "Shoulder Horizontal Adduction",
+        category: "upper",
+        maxAngle: 130,
+        romPosture: "seated",
+        mmtPosture: "supine",
+        romInfo: {
+          range: "0–130°",
+          position: "Seated; shoulder ABD 90°, elbow extended, palm down",
+          axis: "Axis on acromion process",
+          endFeel: "Firm or soft"
+        },
+        mmtInfo: {
+          position: "Supine; arm starts at 90° abduction. Shown hold: 65° horizontal adduction, elbow slightly flexed.",
+          stabilize: "Top of shoulder/scapula",
+          palpate: "Pectoralis major",
+          resist: "Distal humerus, toward horizontal abduction"
+        },
+        startPose: P({ shAbd: 90, faPro: 0 }),
+        endPose:   P({ shAbd: 90, shHoriz: 130, faPro: 0 }),
+        mmtPose:   P({ shAbd: 90, shHoriz: 65, elFlex: 15, faPro: 0 }),
+        resistDelta: P({ shHoriz: -8 }),
+        goniPlane: "transverse",
+        markers: {
+          stabilize: { bone: "thorax", offset: new THREE.Vector3(-0.15, 0.41, 0.04) },
+          palpate:   { bone: "thorax", offset: new THREE.Vector3(-0.10, 0.31, 0.12) },
+          resist:    { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.22, 0.038), dir: new THREE.Vector3(-0.85, -0.5, 0).normalize(), patientDir: new THREE.Vector3(0.85, 0.5, 0).normalize() }
+        }
+      },
+
+      shoulder_horiz_abd: {
+        name: "Shoulder Horizontal Abduction",
+        category: "upper",
+        maxAngle: 45,
+        romPosture: "seated",
+        mmtPosture: "prone",
+        romInfo: {
+          range: "0–45°",
+          position: "Seated or prone; humerus ABD 90°, elbow extended, palm down",
+          axis: "Axis center of humeral head",
+          endFeel: "Firm or soft"
+        },
+        mmtInfo: {
+          position: "Prone; shoulder abducted 90°, elbow 90°. Shown hold: 30° horizontal abduction behind the starting plane.",
+          stabilize: "Top of shoulder/scapula",
+          palpate: "Posterior deltoid",
+          resist: "Posterior distal humerus, toward horizontal adduction"
+        },
+        startPose: P({ shAbd: 90, faPro: 0 }),
+        endPose:   P({ shAbd: 90, shHoriz: -45, faPro: 0 }),
+        mmtPose:   P({ shAbd: 90, shHoriz: -30, elFlex: 90, faPro: 0 }),
+        resistDelta: P({ shHoriz: 7 }),
+        goniPlane: "transverse",
+        markers: {
+          stabilize: { bone: "thorax", offset: new THREE.Vector3(-0.12, 0.38, -0.10) },
+          palpate:   { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.06, -0.06) },
+          resist:    { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.23, -0.038), dir: new THREE.Vector3(0, -1, 0), patientDir: new THREE.Vector3(0, 1, 0) }
+        }
+      },
+
+      // ==================== PAGE 1: ELBOW & FOREARM (4) ====================
+      elbow_flexion: {
+        name: "Elbow Flexion",
+        category: "upper",
+        maxAngle: 145,
+        romPosture: "seated",
+        mmtPosture: "seated",
+        romInfo: {
+          range: "0–135/150°",
+          position: "Standing, seated or supine; humerus ADD, forearm supinated",
+          axis: "Lateral epicondyle (end of elbow crease)",
+          endFeel: "Soft"
+        },
+        mmtInfo: {
+          position: "Seated; arm at side, forearm supinated, elbow held at 95° (biceps emphasis).",
+          stabilize: "Humerus, to prevent ABD & internal rotation",
+          palpate: "Biceps belly over anterior upper arm",
+          resist: "Volar distal forearm, toward elbow extension"
+        },
+        startPose: P({ faPro: 90 }),
+        endPose:   P({ elFlex: 145, faPro: 90 }),
+        mmtPose:   P({ elFlex: 95, faPro: 90 }),
+        resistDelta: P({ elFlex: -8 }),
+        goniPlane: "elbow_sagittal",
+        markers: {
+          stabilize: { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.22, 0.04) },
+          palpate:   { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.14, 0.055) },
+          resist:    { bone: "forearm", offset: new THREE.Vector3(0.0, -0.21, 0.03), dir: new THREE.Vector3(0, -0.9, 0.4).normalize(), patientDir: new THREE.Vector3(0, 0.9, -0.4).normalize() }
+        }
+      },
+
+      elbow_extension: {
+        name: "Elbow Extension",
+        category: "upper",
+        maxAngle: 145,
+        romPosture: "seated",
+        mmtPosture: "prone",
+        romInfo: {
+          range: "145°–0° (See Elbow Flexion)",
+          position: "Standing, seated or supine; humerus ADD, forearm supinated",
+          axis: "Lateral epicondyle",
+          endFeel: "Hard"
+        },
+        mmtInfo: {
+          position: "Prone; shoulder abducted 90°, forearm neutral. Begin with elbow flexed 90°; shown resisted hold near extension at 25°.",
+          stabilize: "Distal humerus, to prevent shoulder motion",
+          palpate: "Triceps, middle of posterior humerus",
+          resist: "Dorsal distal forearm, toward elbow flexion"
+        },
+        startPose: P({ elFlex: 145, faPro: 90 }),
+        endPose:   P({ elFlex: 0, faPro: 90 }),
+        mmtPose:   P({ shAbd: 90, elFlex: 25, faPro: 0 }),
+        resistDelta: P({ elFlex: 10 }),
+        goniPlane: "elbow_sagittal",
+        markers: {
+          stabilize: { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.24, 0.04) },
+          palpate:   { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.14, -0.055) },
+          resist:    { bone: "forearm", offset: new THREE.Vector3(0.0, -0.21, -0.030), dir: new THREE.Vector3(0, -1, 0), patientDir: new THREE.Vector3(0, 1, 0) }
+        }
+      },
+
+      forearm_pronation: {
+        name: "Forearm Pronation",
+        category: "upper",
+        maxAngle: 85,
+        romPosture: "seated",
+        mmtPosture: "seated",
+        romInfo: {
+          range: "0–80/90°",
+          position: "Seated/standing; humerus ADD, elbow 90°, wrist neutral",
+          axis: "Ulnar border, dorsal wrist (alt: head of 3rd MC, pt holds pencil)",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated; arm at side, elbow 90°. ROM starts neutral; shown hold is 45° pronation.",
+          stabilize: "Just proximal to elbow",
+          palpate: "Pronator teres",
+          resist: "Apply opposing rotational resistance at distal radius toward supination; stabilize ulna, avoid wrist torque."
+        },
+        startPose: P({ elFlex: 90, faPro: 0 }),
+        endPose:   P({ elFlex: 90, faPro: -85 }),
+        mmtPose:   P({ elFlex: 90, faPro: -45 }),
+        resistDelta: P({ faPro: 14 }),
+        goniPlane: "wrist_rot",
+        markers: {
+          stabilize: { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.25, 0.0) },
+          palpate:   { bone: "forearm", offset: new THREE.Vector3(0.02, -0.06, 0.03) },
+          resist:    { bone: "forearm", offset: new THREE.Vector3(-0.03, -0.22, 0.02), dir: new THREE.Vector3(-0.8, 0.6, 0).normalize(), patientDir: new THREE.Vector3(0.8, -0.6, 0).normalize() }
+        }
+      },
+
+      forearm_supination: {
+        name: "Forearm Supination",
+        category: "upper",
+        maxAngle: 85,
+        romPosture: "seated",
+        mmtPosture: "seated",
+        romInfo: {
+          range: "0–80/90°",
+          position: "Seated/standing; humerus ADD, elbow 90°, wrist neutral",
+          axis: "Ulnar border, volar wrist (alt: head of 3rd MC, pt holds pencil)",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated; arm at side, elbow 90°. ROM starts neutral; shown hold is 45° supination.",
+          stabilize: "Distal humerus",
+          palpate: "Supinator",
+          resist: "Apply opposing rotational resistance at distal radius toward pronation; stabilize ulna, avoid wrist torque."
+        },
+        startPose: P({ elFlex: 90, faPro: 0 }),
+        endPose:   P({ elFlex: 90, faPro: 85 }),
+        mmtPose:   P({ elFlex: 90, faPro: 45 }),
+        resistDelta: P({ faPro: -14 }),
+        goniPlane: "wrist_rot",
+        markers: {
+          stabilize: { bone: "upperArm", offset: new THREE.Vector3(0.0, -0.25, 0.0) },
+          palpate:   { bone: "forearm", offset: new THREE.Vector3(-0.03, -0.06, -0.02) },
+          resist:    { bone: "forearm", offset: new THREE.Vector3(0.03, -0.22, 0.02), dir: new THREE.Vector3(0.8, -0.6, 0).normalize(), patientDir: new THREE.Vector3(-0.8, 0.6, 0).normalize() }
+        }
+      },
+
+      // ==================== PAGE 2: WRIST (4) ====================
+      wrist_flexion: {
+        name: "Wrist Flexion",
+        category: "hand",
+        maxAngle: 80,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–80°",
+          position: "Seated; forearm pronated and supported, hand beyond edge, wrist neutral at start.",
+          axis: "Ulnar side over triquetrum; fixed arm along ulna, moving arm along fifth metacarpal.",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, forearm supinated, fingers relaxed (OT seated at side)",
+          stabilize: "Volar mid-forearm",
+          palpate: "FCR and FCU tendons on volar wrist",
+          resist: "Volar metacarpals toward extension. For FCR, examiner resists toward extension + ulnar deviation; for FCU, toward extension + radial deviation."
+        },
+        startPose: P({ elFlex: 90, faPro: -90, wrFlex: 0 }),
+        endPose:   P({ elFlex: 90, faPro: -90, wrFlex: 80 }),
+        mmtPose:   P({ elFlex: 90, faPro: 90, wrFlex: 65, fMcpFlex: 12, fPipFlex: 18, fDipFlex: 10 }),
+        resistDelta: P({ wrFlex: -12 }),
+        goniPlane: "wrist_flex_ext",
+        markers: {
+          stabilize: { bone: "forearm", offset: new THREE.Vector3(0.025, -0.14, 0.0) },
+          palpate:   { bone: "forearm", offset: new THREE.Vector3(0.022, -0.21, 0.015) },
+          resist:    { bone: "palm", offset: new THREE.Vector3(0.018, -0.045, 0.0), dir: new THREE.Vector3(0, -1, 0.25).normalize(), patientDir: new THREE.Vector3(0, 1, -0.25).normalize() }
+        }
+      },
+
+      wrist_extension: {
+        name: "Wrist Extension",
+        category: "hand",
+        maxAngle: 70,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–70°",
+          position: "Seated; forearm pronated and supported, hand beyond edge, fingers relaxed.",
+          axis: "Ulnar side over triquetrum; fixed arm along ulna, moving arm along fifth metacarpal.",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated or supine, forearm pronated, fingers relaxed",
+          stabilize: "Under forearm",
+          palpate: "ECRL/ECRB and ECU tendons on dorsal wrist",
+          resist: "Dorsal metacarpals toward flexion. For ECRL/B, examiner resists toward flexion + ulnar deviation; for ECU, toward flexion + radial deviation."
+        },
+        startPose: P({ elFlex: 90, faPro: -90, wrFlex: 0 }),
+        endPose:   P({ elFlex: 90, faPro: -90, wrFlex: -70 }),
+        mmtPose:   P({ elFlex: 90, faPro: -90, wrFlex: -55, fMcpFlex: 20, fPipFlex: 25, fDipFlex: 15 }),
+        resistDelta: P({ wrFlex: 12 }),
+        goniPlane: "wrist_flex_ext",
+        markers: {
+          stabilize: { bone: "forearm", offset: new THREE.Vector3(0.025, -0.15, 0.0) },
+          palpate:   { bone: "forearm", offset: new THREE.Vector3(-0.025, -0.09, 0.018) },
+          resist:    { bone: "palm", offset: new THREE.Vector3(-0.018, -0.06, 0.0), dir: new THREE.Vector3(0, -1, 0.2).normalize(), patientDir: new THREE.Vector3(0, 1, -0.2).normalize() }
+        }
+      },
+
+      wrist_ulnar_dev: {
+        name: "Wrist Ulnar Deviation",
+        category: "hand",
+        maxAngle: 30,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–30°",
+          position: "Seated, forearm pronated, palm flat on table",
+          axis: "Dorsal capitate; fixed arm along forearm, moving arm along third metacarpal.",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, forearm pronated",
+          stabilize: "Distal forearm, avoiding restriction of wrist motion",
+          palpate: "ECU at base of fifth metacarpal; FCU tendon toward pisiform",
+          resist: "Ulnar border of fifth metacarpal toward radial deviation; stabilize distal forearm."
+        },
+        startPose: P({ elFlex: 90, faPro: -90, wrDev: 0 }),
+        endPose:   P({ elFlex: 90, faPro: -90, wrDev: -30 }),
+        mmtPose:   P({ elFlex: 90, faPro: -90, wrDev: -25 }),
+        resistDelta: P({ wrDev: 8 }),
+        goniPlane: "wrist_dev",
+        markers: {
+          stabilize: { bone: "forearm", offset: new THREE.Vector3(-0.025, -0.22, 0.0) },
+          palpate:   { bone: "palm", offset: new THREE.Vector3(-0.015, -0.035, -0.035) },
+          resist:    { bone: "palm", offset: new THREE.Vector3(-0.012, -0.065, -0.038), dir: new THREE.Vector3(1, 0, 0), patientDir: new THREE.Vector3(-1, 0, 0) }
+        }
+      },
+
+      wrist_radial_dev: {
+        name: "Wrist Radial Deviation",
+        category: "hand",
+        maxAngle: 20,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–20°",
+          position: "Seated, forearm pronated, palm flat on table",
+          axis: "Dorsal capitate; fixed arm along forearm, moving arm along third metacarpal.",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, wrist neutral (OT at side)",
+          stabilize: "Under distal forearm, lift hand off table",
+          palpate: "FCR volarly and ECRL/ECRB dorsoradially; avoid substituting thumb abduction",
+          resist: "Radial border of second metacarpal toward ulnar deviation; thumb relaxed."
+        },
+        startPose: P({ elFlex: 90, faPro: -90, wrDev: 0 }),
+        endPose:   P({ elFlex: 90, faPro: -90, wrDev: 20 }),
+        mmtPose:   P({ elFlex: 90, faPro: 0, wrDev: 18 }),
+        resistDelta: P({ wrDev: -6 }),
+        goniPlane: "wrist_dev",
+        markers: {
+          stabilize: { bone: "forearm", offset: new THREE.Vector3(0.0, -0.20, -0.025) },
+          palpate:   { bone: "palm", offset: new THREE.Vector3(-0.01, -0.015, 0.035) },
+          resist:    { bone: "palm", offset: new THREE.Vector3(0.0, -0.06, 0.035), dir: new THREE.Vector3(0, -1, 0), patientDir: new THREE.Vector3(0, 1, 0) }
+        }
+      },
+
+      // ==================== PAGE 2: THUMB (4) ====================
+      thumb_radial_abd: {
+        name: "Thumb Radial ABD (CMC Ext)",
+        category: "hand",
+        maxAngle: 50,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–50°",
+          position: "Seated, forearm pronated, palm flat on table",
+          axis: "Dorsal surface of thumb CMC",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, forearm supinated ~45° (OT at side)",
+          stabilize: "Wrist & MCs, hold hand at 45°",
+          palpate: "APL (lateral base of thumb MC)",
+          resist: "Push down, lateral distal thumb MC"
+        },
+        startPose: P({ elFlex: 90, faPro: -90, thCmcExt: 0 }),
+        endPose:   P({ elFlex: 90, faPro: -90, thCmcExt: 50 }),
+        mmtPose:   P({ elFlex: 90, faPro: 45, thCmcExt: 45 }),
+        resistDelta: P({ thCmcExt: -10 }),
+        goniPlane: "thumb_cmc_ext",
+        markers: {
+          stabilize: { bone: "palm", offset: new THREE.Vector3(0.0, -0.04, -0.01) },
+          palpate:   { bone: "thumbCmc", offset: new THREE.Vector3(-0.01, -0.01, 0.012) },
+          resist:    { bone: "thumbCmc", offset: new THREE.Vector3(0.0, -0.038, 0.012), dir: new THREE.Vector3(-0.5, -0.85, 0).normalize(), patientDir: new THREE.Vector3(0.5, 0.85, 0).normalize() }
+        }
+      },
+
+      thumb_palmar_abd: {
+        name: "Thumb Palmar ABD (CMC Abd)",
+        category: "hand",
+        maxAngle: 50,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–50°",
+          position: "Seated, forearm/wrist neutral, ulnar border supported; move thumb perpendicular to palm",
+          axis: "Junction of thumb & index MCs",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, palm up, thumb perpendicular to palm (OT at side)",
+          stabilize: "Volar distal forearm, wrist, palm; your thumb supports thumb MC",
+          palpate: "Abductor pollicis brevis (lateral thenar eminence)",
+          resist: "Lateral proximal phalanx (push toward palm)"
+        },
+        startPose: P({ elFlex: 90, faPro: 0, thCmcAbd: 0 }),
+        endPose:   P({ elFlex: 90, faPro: 0, thCmcAbd: 50 }),
+        mmtPose:   P({ elFlex: 90, faPro: 90, thCmcAbd: 50 }),
+        resistDelta: P({ thCmcAbd: -10 }),
+        goniPlane: "thumb_cmc_abd",
+        markers: {
+          stabilize: { bone: "palm", offset: new THREE.Vector3(0.012, -0.04, 0.0) },
+          palpate:   { bone: "thumbCmc", offset: new THREE.Vector3(0.014, -0.02, 0.006) },
+          resist:    { bone: "thumbMp", offset: new THREE.Vector3(0.01, -0.02, 0.01), dir: new THREE.Vector3(0, -1, 0), patientDir: new THREE.Vector3(0, 1, 0) }
+        }
+      },
+
+      thumb_mp_flexion: {
+        name: "Thumb MP Flexion",
+        category: "hand",
+        maxAngle: 50,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–50°",
+          position: "Seated, elbow flexed, forearm 45° supination, other fingers relaxed",
+          axis: "Dorsal surface of MP joint",
+          endFeel: "Firm or hard"
+        },
+        mmtInfo: {
+          position: "Seated, palm up; flex MP, relax IP if able (OT at side)",
+          stabilize: "Thumb MC & wrist (no CMC motion)",
+          palpate: "FPB (mid thenar, just medial to APB)",
+          resist: "Index finger just above MP joint (on proximal phalanx), pull into extension"
+        },
+        startPose: P({ elFlex: 90, faPro: 45, thCmcAbd: 20, thMpFlex: 0 }),
+        endPose:   P({ elFlex: 90, faPro: 45, thCmcAbd: 20, thMpFlex: 50 }),
+        mmtPose:   P({ elFlex: 90, faPro: 90, thCmcAbd: 25, thMpFlex: 45, thIpFlex: 0 }),
+        resistDelta: P({ thMpFlex: -10 }),
+        goniPlane: "thumb_mp",
+        markers: {
+          stabilize: { bone: "thumbCmc", offset: new THREE.Vector3(0.0, -0.02, 0.01) },
+          palpate:   { bone: "palm", offset: new THREE.Vector3(0.018, -0.032, 0.022) },
+          resist:    { bone: "thumbMp", offset: new THREE.Vector3(0.01, -0.022, 0.0), dir: new THREE.Vector3(-0.85, -0.5, 0).normalize(), patientDir: new THREE.Vector3(0.85, 0.5, 0).normalize() }
+        }
+      },
+
+      thumb_ip_flexion: {
+        name: "Thumb IP Flexion",
+        category: "hand",
+        maxAngle: 90,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–90°",
+          position: "Seated, elbow flexed, forearm 45° supination, other fingers relaxed",
+          axis: "Dorsal surface of IP joint",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, palm up (OT at side)",
+          stabilize: "Thumb proximal phalanx / MC (isolate IP)",
+          palpate: "FPL tendon (palmar proximal phalanx)",
+          resist: "Index finger on palmar distal phalanx, pull thumb out into extension"
+        },
+        startPose: P({ elFlex: 90, faPro: 45, thCmcAbd: 20, thIpFlex: 0 }),
+        endPose:   P({ elFlex: 90, faPro: 45, thCmcAbd: 20, thIpFlex: 90 }),
+        mmtPose:   P({ elFlex: 90, faPro: 90, thCmcAbd: 20, thIpFlex: 75 }),
+        resistDelta: P({ thIpFlex: -14 }),
+        goniPlane: "thumb_ip",
+        markers: {
+          stabilize: { bone: "thumbMp", offset: new THREE.Vector3(0.0, -0.015, 0.01) },
+          palpate:   { bone: "thumbMp", offset: new THREE.Vector3(0.012, -0.02, 0.0) },
+          resist:    { bone: "thumbIp", offset: new THREE.Vector3(0.01, -0.018, 0.0), dir: new THREE.Vector3(-0.85, -0.5, 0).normalize(), patientDir: new THREE.Vector3(0.85, 0.5, 0).normalize() }
+        }
+      },
+
+      // ==================== PAGE 2: FINGERS (4) ====================
+      finger_mcp_flexion: {
+        name: "Finger MCP Flexion",
+        category: "hand",
+        maxAngle: 90,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–90°",
+          position: "Seated, forearm/wrist neutral on ulnar border, PIP/DIP relaxed",
+          axis: "Dorsal MP joint (or lateral surface)",
+          endFeel: "Hard or firm"
+        },
+        mmtInfo: {
+          position: "Seated, forearm supinated, MCPs flexed, IPs stay extended ('lumbrical plus' tabletop)",
+          stabilize: "Over the palm (metacarpals)",
+          palpate: "Lumbricals / interossei (radial side distal index MC)",
+          resist: "Test each digit: resist palmar proximal phalanx toward MCP extension; separately challenge IP extension toward flexion. The arrow shows the MCP component."
+        },
+        startPose: P({ elFlex: 90, faPro: 0, fMcpFlex: 0, fPipFlex: 0, fDipFlex: 0 }),
+        endPose:   P({ elFlex: 90, faPro: 0, fMcpFlex: 90, fPipFlex: 10, fDipFlex: 5 }),
+        mmtPose:   P({ elFlex: 90, faPro: 90, fMcpFlex: 80, fPipFlex: 0, fDipFlex: 0 }),
+        resistDelta: P({ fMcpFlex: -12 }),
+        goniPlane: "finger_mcp",
+        markers: {
+          stabilize: { bone: "palm", offset: new THREE.Vector3(0.016, -0.045, 0.0) },
+          palpate:   { bone: "palm", offset: new THREE.Vector3(0.012, -0.068, 0.028) },
+          resist:    { bone: "indexMcp", offset: new THREE.Vector3(0.012, -0.03, 0.0), dir: new THREE.Vector3(0, -1, 0.25).normalize(), patientDir: new THREE.Vector3(0, 1, -0.25).normalize() }
+        }
+      },
+
+      finger_mcp_hyperext: {
+        name: "Finger MCP Hyperextension",
+        category: "hand",
+        maxAngle: 45,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–45°",
+          position: "Seated, forearm/wrist neutral, IPs relaxed, ulnar border on table",
+          axis: "Lateral MP joint, index finger",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, forearm pronated, MCPs held at neutral extension (0°), IPs flexed; hyperextension is not required.",
+          stabilize: "Under distal forearm, over wrist (prevent wrist extension)",
+          palpate: "Extensor digitorum communis (dorsum of hand / forearm)",
+          resist: "Each finger separately: push down at distal end of proximal phalanx"
+        },
+        startPose: P({ elFlex: 90, faPro: 0, fMcpFlex: 0, fPipFlex: 20, fDipFlex: 15 }),
+        endPose:   P({ elFlex: 90, faPro: 0, fMcpFlex: -45, fPipFlex: 35, fDipFlex: 25 }),
+        mmtPose:   P({ elFlex: 90, faPro: -90, fMcpFlex: 0, fPipFlex: 70, fDipFlex: 45 }),
+        resistDelta: P({ fMcpFlex: 10 }),
+        goniPlane: "finger_mcp",
+        markers: {
+          stabilize: { bone: "forearm", offset: new THREE.Vector3(-0.022, -0.23, 0.0) },
+          palpate:   { bone: "palm", offset: new THREE.Vector3(-0.016, -0.04, 0.008) },
+          resist:    { bone: "indexMcp", offset: new THREE.Vector3(-0.012, -0.032, 0.0), dir: new THREE.Vector3(0, -1, 0), patientDir: new THREE.Vector3(0, 1, 0) }
+        }
+      },
+
+      finger_pip_flexion: {
+        name: "Finger PIP Flexion",
+        category: "hand",
+        maxAngle: 110,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–110°",
+          position: "Seated, forearm midposition, wrist neutral, ulnar border on table",
+          axis: "Center of lateral PIP joint (or dorsal)",
+          endFeel: "Firm; may be bony depending joint and soft-tissue contact"
+        },
+        mmtInfo: {
+          position: "Seated, palm up, other fingers held extended (OT at side)",
+          stabilize: "MCP & proximal phalanx (hold other fingers extended to isolate FDS)",
+          palpate: "FDS tendon over palmar proximal phalanx; keep tested DIP relaxed without active DIP flexion.",
+          resist: "One finger on palmar middle phalanx, pull into extension"
+        },
+        startPose: P({ elFlex: 90, faPro: 0, fMcpFlex: 0, fPipFlex: 0, fDipFlex: 0 }),
+        endPose:   P({ elFlex: 90, faPro: 0, fMcpFlex: 0, fPipFlex: 110, fDipFlex: 0 }),
+        mmtPose:   P({ elFlex: 90, faPro: 90, fMcpFlex: 0, fPipFlex: 85, fDipFlex: 0 }),
+        resistDelta: P({ fPipFlex: -14 }),
+        goniPlane: "finger_pip",
+        markers: {
+          stabilize: { bone: "indexMcp", offset: new THREE.Vector3(0.012, -0.018, 0.0) },
+          palpate:   { bone: "indexMcp", offset: new THREE.Vector3(0.012, -0.028, 0.008) },
+          resist:    { bone: "indexPip", offset: new THREE.Vector3(0.012, -0.018, 0.0), dir: new THREE.Vector3(0, -1, 0.3).normalize(), patientDir: new THREE.Vector3(0, 1, -0.3).normalize() }
+        }
+      },
+
+      finger_dip_flexion: {
+        name: "Finger DIP Flexion",
+        category: "hand",
+        maxAngle: 80,
+        romPosture: "seated_hand",
+        mmtPosture: "seated_hand",
+        romInfo: {
+          range: "0–80°",
+          position: "Seated, forearm/wrist neutral, ulnar border on table",
+          axis: "Dorsal surface of DIP joint",
+          endFeel: "Firm"
+        },
+        mmtInfo: {
+          position: "Seated, forearm supinated, other fingers extended (OT at side)",
+          stabilize: "Middle phalanx (block PIP in extension)",
+          palpate: "FDP (palmar surface of middle phalanx)",
+          resist: "One finger on palmar distal phalanx, pull into extension"
+        },
+        startPose: P({ elFlex: 90, faPro: 0, fMcpFlex: 0, fPipFlex: 0, fDipFlex: 0 }),
+        endPose:   P({ elFlex: 90, faPro: 0, fMcpFlex: 0, fPipFlex: 0, fDipFlex: 80 }),
+        mmtPose:   P({ elFlex: 90, faPro: 90, fMcpFlex: 0, fPipFlex: 0, fDipFlex: 65 }),
+        resistDelta: P({ fDipFlex: -14 }),
+        goniPlane: "finger_dip",
+        markers: {
+          stabilize: { bone: "indexPip", offset: new THREE.Vector3(0.012, -0.015, 0.0) },
+          palpate:   { bone: "indexPip", offset: new THREE.Vector3(0.012, -0.020, 0.006) },
+          resist:    { bone: "indexDip", offset: new THREE.Vector3(0.012, -0.014, 0.0), dir: new THREE.Vector3(0, -1, 0.3).normalize(), patientDir: new THREE.Vector3(0, 1, -0.3).normalize() }
+        }
+      }
+    };
+
+    // =========================================================================
+    // 2. THREE.JS SCENE & HOLOGRAPHIC / X-RAY FRESNEL SHADER SETUP
+    // =========================================================================
+    const canvas = document.getElementById('three-canvas');
+    const container = document.getElementById('viewport-container');
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 0.05, 50);
+    camera.position.set(-0.95, 1.38, 2.25);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(-0.1, 1.15, 0);
+    controls.minDistance = 0.18;
+    controls.maxDistance = 6.0;
+
+    // Smooth camera focus transition targets
+    const camGoalPos = camera.position.clone();
+    const camGoalTarget = controls.target.clone();
+    let camTransitioning = false;
+
+    const ambientLight = new THREE.AmbientLight(0xd8c8ff, 0.85);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xfff0dd, 1.4);
+    keyLight.position.set(2, 4, 3);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0xa385ff, 1.2);
+    rimLight.position.set(-3, 2, -3);
+    scene.add(rimLight);
+
+    // Custom Fresnel Transparent Glass / X-Ray Shader with Localized Surface Heatmap Shading
+    const heatmapUniforms = {
+      uShowZones:      { value: 0.0 },
+      uZoneStab:       { value: new THREE.Vector3(0, 99, 0) },
+      uZonePalp:       { value: new THREE.Vector3(0, 99, 0) },
+      uZoneRes:        { value: new THREE.Vector3(0, 99, 0) },
+      uResNormal:      { value: new THREE.Vector3(0, 1, 0) },
+      uZoneRadius:     { value: 0.075 },
+      uResRadius:      { value: 0.048 }
+    };
+
+    const fresnelVertexShader = `
+      varying vec3 vNormalView;
+      varying vec3 vViewPosition;
+      varying vec3 vWorldPos;
+      varying vec3 vWorldNormal;
+      void main() {
+        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+        vWorldPos = worldPos.xyz;
+        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        vec4 mvPosition = viewMatrix * worldPos;
+        vNormalView = normalize(normalMatrix * normal);
+        vViewPosition = -mvPosition.xyz;
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `;
+
+    const fresnelFragmentShader = `
+      uniform vec3 uCoreColor;
+      uniform vec3 uRimColor;
+      uniform vec3 uHighlightColor;
+      uniform float uBaseAlpha;
+      uniform float uRimPower;
+      uniform float uActiveBoost;
+      uniform float uOutlineStrength;
+
+      uniform float uShowZones;
+      uniform vec3 uZoneStab;
+      uniform vec3 uZonePalp;
+      uniform vec3 uZoneRes;
+      uniform vec3 uResNormal;
+      uniform float uZoneRadius;
+      uniform float uResRadius;
+
+      varying vec3 vNormalView;
+      varying vec3 vViewPosition;
+      varying vec3 vWorldPos;
+      varying vec3 vWorldNormal;
+
+      // Smooth 3D surface-painted gradient (strictly on the body mesh)
+      void evalZone(vec3 worldPos, vec3 center, float radius, vec3 coreCol, vec3 midCol, vec3 edgeCol, out vec3 col, out float w) {
+        float d = distance(worldPos, center) / max(0.001, radius);
+        w = smoothstep(1.2, 0.0, d);
+        w = pow(w, 1.35);
+        float core = smoothstep(0.55, 0.0, d);
+        float mid  = smoothstep(1.05, 0.12, d);
+        col = mix(edgeCol, midCol, mid);
+        col = mix(col, coreCol, core);
+      }
+
+      void main() {
+        vec3 normal = normalize(vNormalView);
+        vec3 viewDir = normalize(vViewPosition);
+        float ndotv = abs(dot(normal, viewDir));
+        float fresnel = pow(1.0 - ndotv, uRimPower);
+
+        float topLight = clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);
+        vec3 baseTint = mix(uCoreColor, uRimColor, fresnel * uOutlineStrength);
+        vec3 finalColor = mix(baseTint, uHighlightColor, pow(fresnel, 2.4) * (0.65 + 0.35 * topLight) * uOutlineStrength);
+        finalColor += uHighlightColor * uActiveBoost * 0.22 * uOutlineStrength;
+
+        float alpha = clamp(uBaseAlpha + fresnel * (0.78 + uActiveBoost * 0.18) * uOutlineStrength, 0.015, 0.96);
+
+        if (uShowZones > 0.5) {
+          vec3 cStab, cPalp, cRes;
+          float wStab, wPalp, wRes;
+
+          // Stabilize: Bright Cyan-White core -> Royal Blue -> Deep Blue edge on body surface
+          evalZone(vWorldPos, uZoneStab, uZoneRadius,
+            vec3(0.85, 0.96, 1.15), vec3(0.22, 0.58, 1.10), vec3(0.10, 0.30, 0.78), cStab, wStab);
+
+          // Palpate: Bright Mint core -> Emerald Green -> Deep Teal-Green edge on body surface
+          evalZone(vWorldPos, uZonePalp, uZoneRadius * 0.95,
+            vec3(0.85, 1.15, 0.95), vec3(0.08, 0.92, 0.58), vec3(0.04, 0.48, 0.34), cPalp, wPalp);
+
+          // Resist: Bright, vivid, high-contrast red gradient localized on the contact side of the limb
+          float dRes = distance(vWorldPos, uZoneRes) / max(0.001, uResRadius);
+          wRes = pow(smoothstep(1.25, 0.0, dRes), 0.75);
+          float resCore = smoothstep(0.60, 0.0, dRes);
+          float resMid  = smoothstep(1.10, 0.15, dRes);
+          cRes = mix(vec3(1.05, 0.08, 0.15), vec3(1.65, 0.24, 0.26), resMid);
+          cRes = mix(cRes, vec3(2.10, 0.85, 0.78), resCore);
+          float sideMask = smoothstep(-0.40, 0.05, dot(normalize(vWorldNormal), normalize(uResNormal)));
+          wRes *= sideMask;
+
+          float totalW = clamp(wStab + wPalp + wRes, 0.0, 1.0);
+          if (totalW > 0.005) {
+            vec3 zoneCol = (cStab * wStab + cPalp * wPalp + cRes * wRes) / max(0.0001, wStab + wPalp + wRes);
+            vec3 litZone = zoneCol * (0.96 + 0.48 * fresnel + 0.22 * ndotv);
+            finalColor = mix(finalColor, litZone, clamp(totalW * 1.25, 0.0, 0.99));
+            alpha = clamp(max(alpha, totalW * 0.94), 0.015, 0.97);
+          }
+        }
+
+        gl_FragColor = vec4(finalColor, alpha);
+      }
+    `;
+
+    function createHoloMaterial(activeBoost = 0.0, outlineStrength = 1.0, baseAlpha = 0.12) {
+      return new THREE.ShaderMaterial({
+        vertexShader: fresnelVertexShader,
+        fragmentShader: fresnelFragmentShader,
+        uniforms: {
+          uCoreColor:       { value: new THREE.Color(0x1b132e) },
+          uRimColor:        { value: new THREE.Color(0xb69eff) },
+          uHighlightColor:  { value: new THREE.Color(0xfff5ec) },
+          uBaseAlpha:       { value: baseAlpha },
+          uRimPower:        { value: 1.85 },
+          uActiveBoost:     { value: activeBoost },
+          uOutlineStrength: { value: outlineStrength },
+          uShowZones:       heatmapUniforms.uShowZones,
+          uZoneStab:        heatmapUniforms.uZoneStab,
+          uZonePalp:        heatmapUniforms.uZonePalp,
+          uZoneRes:         heatmapUniforms.uZoneRes,
+          uResNormal:       heatmapUniforms.uResNormal,
+          uZoneRadius:      heatmapUniforms.uZoneRadius,
+          uResRadius:       heatmapUniforms.uResRadius
+        },
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        blending: THREE.NormalBlending
+      });
+    }
+
+    // Per-region materials so uninvolved body parts automatically get reduced opacity and removed outlines
+    const partMats = {
+      background:   createHoloMaterial(0.0, 0.0, 0.032),
+      upperArm:     createHoloMaterial(0.35, 1.0, 0.13),
+      forearm:      createHoloMaterial(0.35, 1.0, 0.13),
+      palm:         createHoloMaterial(0.35, 1.0, 0.13),
+      thumb:        createHoloMaterial(0.35, 1.0, 0.13),
+      indexFinger:  createHoloMaterial(0.35, 1.0, 0.13),
+      otherFingers: createHoloMaterial(0.35, 1.0, 0.13)
+    };
+    const bodyHoloMat = partMats.background;
+
+    const boneCoreMat = new THREE.MeshPhysicalMaterial({
+      color: 0xe9dfff,
+      emissive: 0x5c4399,
+      emissiveIntensity: 0.45,
+      roughness: 0.35,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false
+    });
+
+    const gridHelper = new THREE.GridHelper(4, 20, 0x7c65b8, 0x382b5c);
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.28;
+    scene.add(gridHelper);
+
+    // =========================================================================
+    // 3. ANATOMICAL 3D HUMAN RIG & ARTICULATED HAND CONSTRUCTION
+    // =========================================================================
+    const humanRoot = new THREE.Group();
+    scene.add(humanRoot);
+
+    const pelvisGroup = new THREE.Group();
+    pelvisGroup.position.set(0, 0.96, 0);
+    humanRoot.add(pelvisGroup);
+
+    function makeLimbSegment(rTop, rBot, length, mat) {
+      const grp = new THREE.Group();
+      const geo = new THREE.CylinderGeometry(rTop, rBot, length, 24, 8, true);
+      geo.translate(0, -length / 2, 0);
+      const mesh = new THREE.Mesh(geo, mat);
+      grp.add(mesh);
+
+      const topCap = new THREE.Mesh(new THREE.SphereGeometry(rTop, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat);
+      grp.add(topCap);
+      const botCap = new THREE.Mesh(new THREE.SphereGeometry(rBot, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat);
+      botCap.position.y = -length;
+      grp.add(botCap);
+
+      return grp;
+    }
+
+    // --- Pelvis & Torso ---
+    const pelvisMesh = new THREE.Mesh(new THREE.SphereGeometry(0.145, 28, 20), bodyHoloMat);
+    pelvisMesh.scale.set(1.18, 0.72, 0.78);
+    pelvisGroup.add(pelvisMesh);
+
+    const thoraxGroup = new THREE.Group();
+    pelvisGroup.add(thoraxGroup);
+
+    const torsoPoints = [
+      new THREE.Vector2(0.001, 0.0),
+      new THREE.Vector2(0.115, 0.02),
+      new THREE.Vector2(0.108, 0.12),
+      new THREE.Vector2(0.135, 0.26),
+      new THREE.Vector2(0.158, 0.39),
+      new THREE.Vector2(0.142, 0.45),
+      new THREE.Vector2(0.065, 0.468),
+      new THREE.Vector2(0.001, 0.472)
+    ];
+    const torsoLathe = new THREE.LatheGeometry(torsoPoints, 36);
+    torsoLathe.scale(1.15, 1.0, 0.72);
+    thoraxGroup.add(new THREE.Mesh(torsoLathe, bodyHoloMat));
+
+    // --- Head (Neck cylinder removed per user request) ---
+    const neckGroup = new THREE.Group();
+    neckGroup.position.set(0, 0.46, 0);
+    thoraxGroup.add(neckGroup);
+
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 0.13, 0.01);
+    neckGroup.add(headGroup);
+
+    // Single-surface head (cranium + tapered jaw + nose bump sculpted into one mesh).
+    // Separate overlapping meshes caused visible inner circles through the transparent shader.
+    const headGeo = new THREE.SphereGeometry(0.105, 48, 36);
+    const hp = headGeo.attributes.position;
+    for (let i = 0; i < hp.count; i++) {
+      const nx = hp.getX(i) / 0.105, ny = hp.getY(i) / 0.105, nz = hp.getZ(i) / 0.105;
+      let x = nx * 0.105 * 0.92, y = ny * 0.105 * 1.12, z = nz * 0.105 * 1.06;
+      // Jaw: narrow the lower half and bring the chin slightly forward
+      const lower = Math.max(0, -ny);
+      x *= 1 - 0.28 * lower;
+      z += 0.018 * lower * Math.max(0, nz);
+      // Nose: smooth bump on the front (+Z) of the face
+      if (nz > 0) {
+        const bump = Math.exp(-((nx / 0.11) ** 2) - (((ny + 0.08) / 0.17) ** 2));
+        z += 0.024 * bump * nz;
+      }
+      hp.setXYZ(i, x, y, z);
+    }
+    headGeo.computeVertexNormals();
+    headGroup.add(new THREE.Mesh(headGeo, bodyHoloMat));
+
+    // --- RIGHT UPPER EXTREMITY & ARTICULATED HAND RIG ---
+    const rScapularPivot = new THREE.Group();
+    rScapularPivot.position.set(-0.195, 0.42, 0);
+    thoraxGroup.add(rScapularPivot);
+    const rShoulderAnchor = new THREE.Group();
+    rShoulderAnchor.position.set(0, 0, 0);
+    rScapularPivot.add(rShoulderAnchor);
+
+    const rShoulderGimbal = new THREE.Group();
+    rShoulderAnchor.add(rShoulderGimbal);
+
+    const rUpperArm = makeLimbSegment(0.048, 0.038, 0.29, partMats.upperArm, true);
+    rShoulderGimbal.add(rUpperArm);
+
+    const rElbowJoint = new THREE.Group();
+    rElbowJoint.position.set(0, -0.29, 0);
+    rUpperArm.add(rElbowJoint);
+
+    const rForearmRot = new THREE.Group();
+    rElbowJoint.add(rForearmRot);
+
+    const rForearmMesh = makeLimbSegment(0.037, 0.027, 0.25, partMats.forearm, true);
+    rForearmRot.add(rForearmMesh);
+
+    // Wrist Joint at distal end of Forearm (y = -0.25)
+    // Local coordinate frame of Wrist when Forearm is in `faPro = 0`:
+    //   -Y = distal (along hand/fingers)
+    //   +X = palmar (volar side of hand)
+    //   -X = dorsal (back of hand)
+    //   +Z = radial (thumb side)
+    //   -Z = ulnar (little finger side)
+    const rWristJoint = new THREE.Group();
+    rWristJoint.position.set(0, -0.25, 0);
+    rForearmRot.add(rWristJoint);
+
+    // Palm / Metacarpals Group
+    const rPalmGroup = new THREE.Group();
+    rWristJoint.add(rPalmGroup);
+
+    const palmGeo = new THREE.BoxGeometry(0.022, 0.075, 0.072);
+    palmGeo.translate(0, -0.038, 0);
+    const palmMesh = new THREE.Mesh(palmGeo, partMats.palm);
+    rPalmGroup.add(palmMesh);
+
+    // Subtle volar/palmar cyan pad so palmar vs. dorsal orientation is always crystal clear
+    const palmPadGeo = new THREE.PlaneGeometry(0.055, 0.062);
+    palmPadGeo.rotateY(Math.PI / 2);
+    const palmPadMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.26,
+      side: THREE.DoubleSide
+    });
+    const palmPad = new THREE.Mesh(palmPadGeo, palmPadMat);
+    palmPad.position.set(0.012, -0.040, 0);
+    rPalmGroup.add(palmPad);
+
+    // Metacarpal internal bone cores (Index to Little)
+    const fingerZOffsets = [0.026, 0.009, -0.009, -0.026];
+    const fingerLengths  = [
+      [0.034, 0.022, 0.016], // Index (Proximal, Middle, Distal phalanges)
+      [0.038, 0.025, 0.017], // Middle
+      [0.035, 0.023, 0.016], // Ring
+      [0.028, 0.018, 0.014]  // Little
+    ];
+
+    const fingerChains = [];
+
+    for (let i = 0; i < 4; i++) {
+      const zOff = fingerZOffsets[i];
+      const fMat = (i === 0) ? partMats.indexFinger : partMats.otherFingers;
+
+      // MCP Joint at distal palm (y = -0.074)
+      const mcpJoint = new THREE.Group();
+      mcpJoint.position.set(0, -0.074, zOff);
+      rPalmGroup.add(mcpJoint);
+
+      const [lenP1, lenP2, lenP3] = fingerLengths[i];
+      const p1Seg = makeLimbSegment(0.0075, 0.0065, lenP1, fMat, true);
+      mcpJoint.add(p1Seg);
+
+      // PIP Joint
+      const pipJoint = new THREE.Group();
+      pipJoint.position.set(0, -lenP1, 0);
+      mcpJoint.add(pipJoint);
+
+      const p2Seg = makeLimbSegment(0.0065, 0.0055, lenP2, fMat, true);
+      pipJoint.add(p2Seg);
+
+      // DIP Joint
+      const dipJoint = new THREE.Group();
+      dipJoint.position.set(0, -lenP2, 0);
+      pipJoint.add(dipJoint);
+
+      const p3Seg = makeLimbSegment(0.0055, 0.0042, lenP3, fMat, true);
+      dipJoint.add(p3Seg);
+
+      fingerChains.push({ mcpJoint, pipJoint, dipJoint });
+    }
+
+    // --- Articulated Thumb Chain (CMC -> MP -> IP) ---
+    // Thumb CMC Joint located at radial-proximal base of palm (y = -0.018, z = +0.050)
+    const rThumbCmc = new THREE.Group();
+    rThumbCmc.position.set(0.004, -0.018, 0.050);
+    rPalmGroup.add(rThumbCmc);
+
+    // Neutral thumb metacarpal aligns distally (-Y); movement DOFs define radial and palmar angles.
+    const thumbMcSeg = makeLimbSegment(0.0095, 0.008, 0.036, partMats.thumb, true);
+    rThumbCmc.add(thumbMcSeg);
+
+    // Thumb MP Joint at end of Thumb MC (y = -0.036)
+    const rThumbMp = new THREE.Group();
+    rThumbMp.position.set(0, -0.036, 0);
+    rThumbCmc.add(rThumbMp);
+
+    const thumbP1Seg = makeLimbSegment(0.008, 0.0068, 0.026, partMats.thumb, true);
+    rThumbMp.add(thumbP1Seg);
+
+    // Thumb IP Joint at end of Thumb Proximal Phalanx (y = -0.026)
+    const rThumbIp = new THREE.Group();
+    rThumbIp.position.set(0, -0.026, 0);
+    rThumbMp.add(rThumbIp);
+
+    const thumbP2Seg = makeLimbSegment(0.0068, 0.0052, 0.021, partMats.thumb, true);
+    rThumbIp.add(thumbP2Seg);
+
+    // --- LEFT UPPER EXTREMITY (Reference Stationary Arm — No internal bones) ---
+    const lShoulderAnchor = new THREE.Group();
+    lShoulderAnchor.position.set(0.195, 0.42, 0.0);
+    thoraxGroup.add(lShoulderAnchor);
+
+    const lUpperArm = makeLimbSegment(0.046, 0.036, 0.29, bodyHoloMat, false);
+    lShoulderAnchor.add(lUpperArm);
+
+    const lElbowJoint = new THREE.Group();
+    lElbowJoint.position.set(0, -0.29, 0);
+    lUpperArm.add(lElbowJoint);
+
+    const lForearm = makeLimbSegment(0.035, 0.025, 0.25, bodyHoloMat, false);
+    lElbowJoint.add(lForearm);
+
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.13, 0.065), bodyHoloMat);
+    lHand.position.set(0, -0.31, 0);
+    lForearm.add(lHand);
+
+    // --- LOWER EXTREMITIES (No internal bones) ---
+    function createLeg(sideSign) {
+      const hip = new THREE.Group();
+      hip.position.set(sideSign * 0.105, -0.02, 0);
+      pelvisGroup.add(hip);
+
+      const thigh = makeLimbSegment(0.068, 0.050, 0.44, bodyHoloMat, false);
+      hip.add(thigh);
+
+      const knee = new THREE.Group();
+      knee.position.set(0, -0.44, 0);
+      thigh.add(knee);
+
+      const calf = makeLimbSegment(0.048, 0.034, 0.43, bodyHoloMat, false);
+      knee.add(calf);
+
+      const footGeo = new THREE.BoxGeometry(0.075, 0.045, 0.17);
+      footGeo.translate(0, -0.022, 0.045);
+      const foot = new THREE.Mesh(footGeo, bodyHoloMat);
+      foot.position.set(0, -0.43, 0);
+      calf.add(foot);
+
+      return { hip, knee };
+    }
+
+    const rLeg = createLeg(-1);
+    const lLeg = createLeg(1);
+
+    // --- CLINICAL EXAM PLINTH, STOOL & HAND SUPPORT TABLE ---
+    const furnitureGroup = new THREE.Group();
+    scene.add(furnitureGroup);
+
+    const tableMat = new THREE.MeshPhysicalMaterial({
+      color: 0x3b2d5e,
+      roughness: 0.4,
+      transparent: true,
+      opacity: 0.30,
+      depthWrite: false
+    });
+    const tableWireMat = new THREE.LineBasicMaterial({ color: 0x8b74c9, transparent: true, opacity: 0.35 });
+
+    // 1. Seated Stool
+    const stoolGroup = new THREE.Group();
+    const stoolSeat = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 28), tableMat);
+    stoolSeat.position.set(0, 0.50, 0);
+    stoolGroup.add(stoolSeat);
+    const stoolLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.48, 16), tableMat);
+    stoolLeg.position.set(0, 0.24, 0);
+    stoolGroup.add(stoolLeg);
+    furnitureGroup.add(stoolGroup);
+
+    // 2. Supine / Prone Plinth Table
+    const plinthGroup = new THREE.Group();
+    const plinthTopGeo = new THREE.BoxGeometry(0.62, 0.06, 1.85);
+    const plinthTop = new THREE.Mesh(plinthTopGeo, tableMat);
+    plinthTop.position.set(0.11, 0.72, 0.0);
+    plinthGroup.add(plinthTop);
+    const plinthEdges = new THREE.LineSegments(new THREE.EdgesGeometry(plinthTopGeo), tableWireMat);
+    plinthEdges.position.copy(plinthTop.position);
+    plinthGroup.add(plinthEdges);
+
+    [[-0.15, 0.35, -0.82], [0.36, 0.35, -0.82], [-0.15, 0.35, 0.82], [0.36, 0.35, 0.82]].forEach(([lx, ly, lz]) => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.70, 12), tableMat);
+      leg.position.set(lx, ly, lz);
+      plinthGroup.add(leg);
+    });
+    plinthGroup.visible = false;
+    furnitureGroup.add(plinthGroup);
+
+    // 3. Hand / Forearm Side Exam Table (Appears automatically for Wrist, Thumb & Finger tests)
+    const handTableGroup = new THREE.Group();
+    const handTableTopGeo = new THREE.BoxGeometry(0.32, 0.025, 0.48);
+    const handTableTop = new THREE.Mesh(handTableTopGeo, tableMat);
+    handTableTop.position.set(-0.22, 0.64, 0.22);
+    handTableGroup.add(handTableTop);
+    const handTableEdges = new THREE.LineSegments(new THREE.EdgesGeometry(handTableTopGeo), tableWireMat);
+    handTableEdges.position.copy(handTableTop.position);
+    handTableGroup.add(handTableEdges);
+    const handTablePillar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.63, 12), tableMat);
+    handTablePillar.position.set(-0.22, 0.315, 0.22);
+    handTableGroup.add(handTablePillar);
+    handTableGroup.visible = false;
+    furnitureGroup.add(handTableGroup);
+
+    // =========================================================================
+    // 4. 3D GONIOMETER ARC & STABILIZE / PALPATE / RESIST MARKERS
+    // =========================================================================
+    const goniGroup = new THREE.Group();
+    scene.add(goniGroup);
+
+    const statArmGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, -0.2, 0)]);
+    const statArmLine = new THREE.Line(statArmGeo, new THREE.LineBasicMaterial({ color: 0x94a3b8, linewidth: 2 }));
+    goniGroup.add(statArmLine);
+
+    const movArmGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, -0.2, 0)]);
+    const movArmLine = new THREE.Line(movArmGeo, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 3 }));
+    goniGroup.add(movArmLine);
+
+    let sectorMesh = null;
+    const sectorMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    const axisRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.008, 0.015, 24),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide })
+    );
+    goniGroup.add(axisRing);
+
+    // --- 3D MMT Single Yellow Direction-of-Motion Arrow (Linear or Circumferential Torque) ---
+    const mmtOverlayGroup = new THREE.Group();
+    scene.add(mmtOverlayGroup);
+
+    const yellowArrowMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+
+    // 1. Straight single yellow arrow for linear / angular limb movements
+    const motionLinearArrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(),
+      0.14,
+      0xfacc15,
+      0.036,
+      0.024
+    );
+    mmtOverlayGroup.add(motionLinearArrow);
+    // 2. Circumferential curved yellow arrow around the axis of rotation for torque MMTs
+    const motionTorqueGroup = new THREE.Group();
+    mmtOverlayGroup.add(motionTorqueGroup);
+    let torqueTubeMesh = null;
+    let torqueConeMesh = null;
+    let builtTorqueKey = "";
+
+    function updateTorqueCurvedArrow(key, radius, sign) {
+      const cacheKey = `${key}_${radius.toFixed(3)}_${sign}`;
+      if (builtTorqueKey === cacheKey) return;
+      builtTorqueKey = cacheKey;
+
+      if (torqueTubeMesh) {
+        motionTorqueGroup.remove(torqueTubeMesh);
+        torqueTubeMesh.geometry.dispose();
+      }
+      if (torqueConeMesh) {
+        motionTorqueGroup.remove(torqueConeMesh);
+        torqueConeMesh.geometry.dispose();
+      }
+
+      // Build circumferential arc in XZ plane around local Y axis (the bone's long axis)
+      const pts = [];
+      const steps = 28;
+      const startAng = -sign * 0.65;
+      const endAng   =  sign * 0.95;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const a = startAng + (endAng - startAng) * t;
+        pts.push(new THREE.Vector3(Math.sin(a) * radius, 0, Math.cos(a) * radius));
+      }
+      const curve = new THREE.CatmullRomCurve3(pts);
+      const tubeRadius = Math.max(0.0038, radius * 0.085);
+      const tubeGeo = new THREE.TubeGeometry(curve, 28, tubeRadius, 12, false);
+      torqueTubeMesh = new THREE.Mesh(tubeGeo, yellowArrowMat);
+      motionTorqueGroup.add(torqueTubeMesh);
+
+      const endPt = curve.getPoint(1.0);
+      const tangent = curve.getTangent(1.0).normalize();
+      const coneGeo = new THREE.ConeGeometry(tubeRadius * 2.8, tubeRadius * 7.0, 14);
+      coneGeo.translate(0, tubeRadius * 3.0, 0);
+      torqueConeMesh = new THREE.Mesh(coneGeo, yellowArrowMat);
+      torqueConeMesh.position.copy(endPt);
+      torqueConeMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+      motionTorqueGroup.add(torqueConeMesh);
+    }
+
+    // =========================================================================
+    // 5. APPLICATION STATE & INTERACTIVE CONTROLS
+    // =========================================================================
+    const state = {
+      movementKey: "shoulder_abduction",
+      mode: "start",          // 'start' | 'end' | 'mmt' | 'scrub'
+      animatingROM: false,    // Toggle 3
+      animatingResist: false, // Toggle 5
+      progress: 0.0,
+      romPauseTimer: 0.0,     // 500ms pause timer at end of ROM before warping back to start
+      tableMode: "auto",
+      currentPose: P({}),
+      targetPose:  P({}),
+      currentPosture: "seated"
+    };
+
+    function getInvolvedPartKeys(key, mode) {
+      if (key.startsWith('shoulder_') || key.startsWith('elbow_')) {
+        return ['upperArm', 'forearm', 'palm', 'thumb', 'indexFinger', 'otherFingers'];
+      }
+      if (key.startsWith('forearm_') || key.startsWith('wrist_')) {
+        return ['forearm', 'palm', 'thumb', 'indexFinger', 'otherFingers'];
+      }
+      if (key === 'thumb_radial_abd' || key === 'thumb_palmar_abd' || key === 'thumb_mp_flexion') {
+        return ['palm', 'thumb'];
+      }
+      if (key === 'thumb_ip_flexion') {
+        return ['thumb'];
+      }
+      if (key === 'finger_mcp_flexion' || key === 'finger_mcp_hyperext') {
+        return ['palm', 'indexFinger', 'otherFingers'];
+      }
+      if (key === 'finger_pip_flexion' || key === 'finger_dip_flexion') {
+        return (mode === 'mmt') ? ['indexFinger'] : ['indexFinger', 'otherFingers'];
+      }
+      return ['upperArm', 'forearm', 'palm', 'thumb', 'indexFinger', 'otherFingers'];
+    }
+
+    function updateBodyPartHighlights(activeBoost = 0.32) {
+      const involved = new Set(getInvolvedPartKeys(state.movementKey, state.mode));
+      for (const [partName, mat] of Object.entries(partMats)) {
+        const isInv = involved.has(partName);
+        mat.uniforms.uOutlineStrength.value = isInv ? 1.0 : 0.0;
+        mat.uniforms.uBaseAlpha.value       = isInv ? 0.13 : 0.032;
+        mat.uniforms.uActiveBoost.value     = isInv ? activeBoost : 0.0;
+      }
+      palmPadMat.opacity = involved.has('palm') ? 0.24 : 0.025;
+    }
+
+    const movementButtons = Array.from(document.querySelectorAll('[data-movement]'));
+    const ANGLE_DOF = {
+      shoulder_abduction: 'shAbd', shoulder_flexion: 'shFlex', shoulder_extension: 'shFlex',
+      shoulder_ir: 'shRot', shoulder_er: 'shRot', shoulder_horiz_add: 'shHoriz', shoulder_horiz_abd: 'shHoriz',
+      elbow_flexion: 'elFlex', elbow_extension: 'elFlex', forearm_pronation: 'faPro', forearm_supination: 'faPro',
+      wrist_flexion: 'wrFlex', wrist_extension: 'wrFlex', wrist_ulnar_dev: 'wrDev', wrist_radial_dev: 'wrDev',
+      thumb_radial_abd: 'thCmcExt', thumb_palmar_abd: 'thCmcAbd', thumb_mp_flexion: 'thMpFlex', thumb_ip_flexion: 'thIpFlex',
+      finger_mcp_flexion: 'fMcpFlex', finger_mcp_hyperext: 'fMcpFlex', finger_pip_flexion: 'fPipFlex', finger_dip_flexion: 'fDipFlex'
+    };
+    function getMovementAngle(mv, pose) {
+      const key = Object.keys(MOVEMENTS).find(key => MOVEMENTS[key] === mv);
+      return Math.abs(pose[ANGLE_DOF[key]]);
+    }
+    const btnStart        = document.getElementById('btn-start');
+    const btnEnd          = document.getElementById('btn-end');
+    const btnAnimRom      = document.getElementById('btn-anim-rom');
+    const btnMmt          = document.getElementById('btn-mmt');
+    const btnAnimResist   = document.getElementById('btn-anim-resist');
+    const pillAnimRom     = document.getElementById('pill-anim-rom');
+    const pillAnimResist  = document.getElementById('pill-anim-resist');
+    const angleSlider     = document.getElementById('angle-slider');
+    const angleReadout    = document.getElementById('angle-readout');
+    const hudTitle        = document.getElementById('hud-title');
+    const hudSubtitle     = document.getElementById('hud-subtitle');
+    const postureInd      = document.getElementById('posture-indicator');
+    const romRangeBadge   = document.getElementById('rom-range-badge');
+    const mmtPostureBadge = document.getElementById('mmt-posture-badge');
+    const btnToggleTable  = document.getElementById('btn-toggle-table');
+
+    const labelGoni = document.getElementById('label-goni');
+    const labelStab = document.getElementById('label-stab');
+    const labelPalp = document.getElementById('label-palp');
+    const labelRes  = document.getElementById('label-res');
+    const labelMotion = document.getElementById('label-motion');
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function getResistedPose(mv, elapsed) {
+      const effort = 0.5 - 0.5 * Math.cos(elapsed * 5.5);
+      const pose = {};
+      for (const key of Object.keys(DEFAULT_POSE)) {
+        pose[key] = mv.mmtPose[key] + (mv.resistDelta[key] || 0) * effort;
+      }
+      return pose;
+    }
+
+    function lerpPose(poseA, poseB, t) {
+      const out = {};
+      for (const k of Object.keys(DEFAULT_POSE)) {
+        out[k] = lerp(poseA[k], poseB[k], t);
+      }
+      return out;
+    }
+
+    function updateMovementUI() {
+      const mv = MOVEMENTS[state.movementKey];
+      hudTitle.textContent = mv.name;
+      movementButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.movement === state.movementKey)));
+      romRangeBadge.textContent = mv.romInfo.range;
+      btnStart.title = `Show start: ${getMovementAngle(mv, mv.startPose)}°`;
+      btnEnd.title = `Show end: ${getMovementAngle(mv, mv.endPose)}°`;
+      mmtPostureBadge.textContent = mv.mmtPosture.replace('_hand', '').toUpperCase();
+
+
+    }
+
+    function syncControlButtonsUI() {
+      btnStart.classList.toggle('active-rom', state.mode === 'start' && !state.animatingROM);
+      btnEnd.classList.toggle('active-rom', state.mode === 'end' && !state.animatingROM);
+      btnAnimRom.classList.toggle('active-rom', state.animatingROM);
+      btnAnimRom.setAttribute('aria-pressed', String(state.animatingROM));
+      pillAnimRom.textContent = state.animatingROM ? 'ON' : 'OFF';
+
+      btnMmt.classList.toggle('active-mmt', state.mode === 'mmt' && !state.animatingResist);
+      btnAnimResist.classList.toggle('active-resist', state.animatingResist);
+      btnAnimResist.setAttribute('aria-pressed', String(state.animatingResist));
+      pillAnimResist.textContent = state.animatingResist ? 'ON' : 'OFF';
+
+      const mv = MOVEMENTS[state.movementKey];
+      const rawPosture = (state.mode === 'mmt') ? mv.mmtPosture : mv.romPosture;
+      const cleanPosture = rawPosture.replace('_hand', '');
+      postureInd.textContent = `Client: ${cleanPosture.charAt(0).toUpperCase() + cleanPosture.slice(1)}`;
+
+      if (state.animatingResist) {
+        hudSubtitle.textContent = `5. Resisting Against MMT (${cleanPosture.toUpperCase()}) — Resisted Effort`;
+        hudSubtitle.style.color = 'var(--accent-resist)';
+      } else if (state.mode === 'mmt') {
+        hudSubtitle.textContent = `4. MMT Testing Position (${cleanPosture.toUpperCase()}) — Stabilize & Palpate`;
+        hudSubtitle.style.color = 'var(--accent-mmt)';
+      } else if (state.animatingROM) {
+        hudSubtitle.textContent = `3. Animating ROM (${getMovementAngle(mv, mv.startPose)}° → ${getMovementAngle(mv, mv.endPose)}°)`;
+        hudSubtitle.style.color = 'var(--accent-rom)';
+      } else if (state.mode === 'end') {
+        hudSubtitle.textContent = `2. Ending Position (${getMovementAngle(mv, mv.endPose)}°)`;
+        hudSubtitle.style.color = 'var(--accent-rom)';
+      } else if (state.mode === 'start') {
+        hudSubtitle.textContent = `1. Starting Position (${getMovementAngle(mv, mv.startPose)}°)`;
+        hudSubtitle.style.color = 'var(--accent-rom)';
+      } else {
+        const deg = Math.round(getMovementAngle(mv, state.targetPose));
+        hudSubtitle.textContent = `Manual ROM Scrub (${deg}° / ${mv.maxAngle}°)`;
+        hudSubtitle.style.color = 'var(--accent-rom)';
+      }
+      updateBodyPartHighlights((state.mode === 'mmt') ? 0.42 : 0.30);
+    }
+
+    let camTransitionStartTime = 0;
+    let autoHandCamera = false;
+
+    function getHandCameraFloor() {
+      humanRoot.updateMatrixWorld(true);
+      const samples = [rElbowJoint, rWristJoint, rThumbCmc, rThumbMp, rThumbIp].map(bone => bone.getWorldPosition(new THREE.Vector3()));
+      samples.push(rThumbIp.localToWorld(new THREE.Vector3(0, -0.021, 0)));
+      fingerChains.forEach((chain, index) => {
+        for (const joint of [chain.mcpJoint, chain.pipJoint, chain.dipJoint]) samples.push(joint.getWorldPosition(new THREE.Vector3()));
+        samples.push(chain.dipJoint.localToWorld(new THREE.Vector3(0, -fingerLengths[index][2], 0)));
+      });
+      return Math.max(...samples.map(point => point.y)) + 0.12;
+    }
+
+    // Auto-orient & zoom camera so the view ray is normal to the movement's anatomical plane
+    function focusCameraForMovement(key) {
+      const mv = MOVEMENTS[key];
+      const plane = mv.goniPlane;
+      autoHandCamera = mv.category === 'hand';
+
+      if (mv.category === 'hand') {
+        // Unified zoomed-in 3/4 rear-right-lateral elevated perspective on the hand table
+        camGoalTarget.set(-0.20, 0.68, 0.21);
+        camGoalPos.set(-0.56, 1.12, -0.18);
+      } else {
+        // Upper Extremity (Shoulder, Elbow, Forearm)
+        if (plane === 'coronal') {
+          // Shoulder Abduction: Coronal XY plane -> Front normal (+Z)
+          camGoalTarget.set(-0.15, 0.88, 0.0);
+          camGoalPos.set(-0.15, 0.92, 2.25);
+        } else if (plane === 'sagittal' || plane === 'sagittal_ext') {
+          // Shoulder Flexion / Extension: Sagittal YZ plane -> Right Lateral normal (-X)
+          camGoalTarget.set(-0.195, 0.88, 0.05);
+          camGoalPos.set(-2.25, 0.90, 0.05);
+        } else if (plane === 'elbow_sagittal') {
+          // Elbow Flexion / Extension: Sagittal YZ plane -> Closer Right Lateral normal (-X)
+          camGoalTarget.set(-0.195, 0.82, 0.12);
+          camGoalPos.set(-1.65, 0.85, 0.12);
+        } else if (plane === 'elbow_rot') {
+          // Shoulder IR / ER: Humerus abducted 90° (-X), forearm sweeps in YZ plane around elbow at (-0.48, 0.98, 0) -> Lateral normal (-X)
+          camGoalTarget.set(-0.46, 0.92, 0.10);
+          camGoalPos.set(-1.95, 0.94, 0.12);
+        } else if (plane === 'transverse') {
+          // Shoulder Horizontal Adduction / Abduction: Transverse XZ plane -> Overhead Top normal (+Y)
+          camGoalTarget.set(-0.15, 0.95, 0.12);
+          camGoalPos.set(-0.15, 2.55, 0.16);
+        } else if (plane === 'wrist_rot') {
+          // Forearm Pronation / Supination: Forearm points along +Z, hand rotates in XY plane -> Distal Front normal (+Z)
+          camGoalTarget.set(-0.195, 0.72, 0.25);
+          camGoalPos.set(-0.22, 0.78, 1.15);
+        } else {
+          camGoalTarget.set(-0.12, 0.85, 0);
+          camGoalPos.set(-1.15, 1.33, 2.15);
+        }
+      }
+      camTransitionStartTime = performance.now();
+      camTransitioning = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (!camTransitioning) { camera.position.copy(camGoalPos); controls.target.copy(camGoalTarget); }
+    }
+
+    // 1. Starting Position
+    function setStartPosition() {
+      state.animatingROM = false;
+      state.animatingResist = false;
+      state.mode = 'start';
+      state.progress = 0;
+      angleSlider.value = 0;
+      const mv = MOVEMENTS[state.movementKey];
+      state.targetPose = { ...mv.startPose };
+      state.currentPose = { ...mv.startPose };
+      applyPosture(mv.romPosture);
+      syncControlButtonsUI();
+      focusCameraForMovement(state.movementKey);
+    }
+
+    // 2. Ending Position
+    function setEndPosition() {
+      state.animatingROM = false;
+      state.animatingResist = false;
+      state.mode = 'end';
+      state.progress = 1;
+      angleSlider.value = 100;
+      const mv = MOVEMENTS[state.movementKey];
+      state.targetPose = { ...mv.endPose };
+      state.currentPose = { ...mv.endPose };
+      applyPosture(mv.romPosture);
+      syncControlButtonsUI();
+      focusCameraForMovement(state.movementKey);
+    }
+
+    // 3. Toggle Animation between Start and End (one-way Start -> End, 500ms hold, warp to Start)
+    function toggleRomAnimation() {
+      state.animatingROM = !state.animatingROM;
+      if (state.animatingROM) {
+        state.animatingResist = false;
+        state.mode = 'start';
+        state.progress = 0.0;
+        state.romPauseTimer = 0.0;
+        angleSlider.value = 0;
+        const mv = MOVEMENTS[state.movementKey];
+        state.targetPose = { ...mv.startPose };
+        state.currentPose = { ...mv.startPose };
+        applyPosture(mv.romPosture);
+        focusCameraForMovement(state.movementKey);
+      }
+      syncControlButtonsUI();
+    }
+
+    // 4. MMT Position
+    function setMmtPosition() {
+      state.animatingROM = false;
+      state.animatingResist = false;
+      state.mode = 'mmt';
+      const mv = MOVEMENTS[state.movementKey];
+      state.targetPose = { ...mv.mmtPose };
+      state.currentPose = { ...mv.mmtPose };
+      applyPosture(mv.mmtPosture);
+      syncControlButtonsUI();
+      focusCameraForMovement(state.movementKey);
+    }
+
+    // 5. Toggle resisted-effort animation against MMT
+    function toggleResistAnimation() {
+      state.animatingResist = !state.animatingResist;
+      const mv = MOVEMENTS[state.movementKey];
+      if (state.animatingResist) {
+        state.animatingROM = false;
+        state.mode = 'mmt';
+        state.targetPose = { ...mv.mmtPose };
+        state.currentPose = { ...mv.mmtPose };
+        applyPosture(mv.mmtPosture);
+        focusCameraForMovement(state.movementKey);
+      } else {
+        state.targetPose = { ...mv.mmtPose };
+        state.currentPose = { ...mv.mmtPose };
+      }
+      syncControlButtonsUI();
+    }
+
+    function applyPosture(posture) {
+      state.currentPosture = posture;
+
+      if (posture === 'seated' || posture === 'seated_hand') {
+        pelvisGroup.position.set(0, 0.56, 0);
+        pelvisGroup.rotation.set(0, 0, 0);
+        // Body faces +Z: hip flexion (-X) swings thighs forward, knee flexion (+X) drops calves down
+        rLeg.hip.rotation.set(-Math.PI / 2, 0, -0.06);
+        lLeg.hip.rotation.set(-Math.PI / 2, 0,  0.06);
+        rLeg.knee.rotation.set(Math.PI / 2, 0, 0);
+        lLeg.knee.rotation.set(Math.PI / 2, 0, 0);
+        headGroup.rotation.set(0, 0, 0);
+      } else if (posture === 'supine') {
+        pelvisGroup.position.set(0, 0.85, 0.15);
+        pelvisGroup.rotation.set(-Math.PI / 2, 0, 0);
+        rLeg.hip.rotation.set(0, 0, -0.03);
+        lLeg.hip.rotation.set(0, 0,  0.03);
+        rLeg.knee.rotation.set(0, 0, 0);
+        lLeg.knee.rotation.set(0, 0, 0);
+        headGroup.rotation.set(0, 0, 0);
+      } else if (posture === 'prone') {
+        pelvisGroup.position.set(0, 0.85, -0.15);
+        pelvisGroup.rotation.set(Math.PI / 2, 0, 0);
+        rLeg.hip.rotation.set(0, 0, -0.03);
+        lLeg.hip.rotation.set(0, 0,  0.03);
+        rLeg.knee.rotation.set(0, 0, 0);
+        lLeg.knee.rotation.set(0, 0, 0);
+        headGroup.rotation.set(0, 0.55, 0);
+      }
+
+      updateFurnitureVisibility();
+    }
+
+    function updateFurnitureVisibility() {
+      if (state.tableMode === 'hide') {
+        stoolGroup.visible = false;
+        plinthGroup.visible = false;
+        handTableGroup.visible = false;
+        return;
+      }
+      stoolGroup.visible     = (state.currentPosture === 'seated' || state.currentPosture === 'seated_hand');
+      plinthGroup.visible    = (state.currentPosture === 'supine' || state.currentPosture === 'prone');
+      handTableGroup.visible = (state.currentPosture === 'seated_hand');
+    }
+
+    const deg2rad = THREE.MathUtils.degToRad;
+
+    function applyArmAndHandKinematics(pose) {
+      // 1. Shoulder & Elbow & Forearm
+      rShoulderGimbal.rotation.set(0, 0, 0);
+      rUpperArm.rotation.set(0, 0, 0);
+
+      rShoulderGimbal.rotation.order = 'YZX';
+      rShoulderGimbal.rotation.y = deg2rad(pose.shHoriz);
+      const overheadROM = state.mode !== 'mmt' && ['shoulder_abduction', 'shoulder_flexion'].includes(state.movementKey);
+      const elevation = overheadROM ? Math.max(pose.shAbd, pose.shFlex) : 0;
+      const scapular = Math.max(0, elevation - 30) / 3;
+      rScapularPivot.rotation.set(0, 0, 0);
+      if (state.movementKey === 'shoulder_abduction') rScapularPivot.rotation.z = deg2rad(-scapular);
+      if (state.movementKey === 'shoulder_flexion') rScapularPivot.rotation.x = deg2rad(-scapular);
+      rShoulderGimbal.rotation.z = deg2rad(-(pose.shAbd - (state.movementKey === 'shoulder_abduction' ? scapular : 0)));
+      // Body faces +Z: a -X rotation swings a hanging limb forward (+Z), so flexion is negated
+      rShoulderGimbal.rotation.x = deg2rad(-(pose.shFlex - (state.movementKey === 'shoulder_flexion' ? scapular : 0)));
+
+      // Positive internal rotation lowers the forearm in the seated 90/90 setup.
+      // Gradual external rotation accompanies overhead ROM; MMT holds keep their defined orientation.
+      const overheadER = overheadROM ? Math.min(90, Math.max(0, elevation - 30)) : 0;
+      rUpperArm.rotation.y = deg2rad(pose.shRot - overheadER);
+      rElbowJoint.rotation.set(deg2rad(-pose.elFlex), 0, 0);
+      // Right forearm: +Y rotation turns the thumb medially (pronation), so negate so +faPro = supination
+      rForearmRot.rotation.set(0, deg2rad(-pose.faPro), 0);
+
+      // 2. Wrist Flexion/Extension (`wrFlex` around Z: +wrFlex bends toward palmar +X)
+      //    & Radial/Ulnar Deviation (`wrDev` around X: -wrDev bends toward thumb +Z)
+      rWristJoint.rotation.order = 'ZXY';
+      rWristJoint.rotation.z = deg2rad(pose.wrFlex);
+      rWristJoint.rotation.x = deg2rad(-pose.wrDev);
+
+      // 3. Thumb CMC, MP, IP
+      // CMC neutral aligns first and second metacarpals for zero-based plane-specific ROM
+      // - `thCmcExt` (Radial ABD / CMC Extension): rotates thumb radially in plane of palm (-X rotation lifts toward +Z)
+      // - `thCmcAbd` (Palmar ABD / CMC Abduction): rotates thumb perpendicular to palm (+Z rotation lifts toward +X)
+      rThumbCmc.rotation.order = 'ZXY';
+      rThumbCmc.rotation.x = deg2rad(-pose.thCmcExt);
+      rThumbCmc.rotation.z = deg2rad(pose.thCmcAbd);
+
+      // Thumb MP & IP Flexion: bends thumb across/into palm (+X rotation bends toward the ulnar side)
+      rThumbMp.rotation.set(deg2rad(pose.thMpFlex), 0, 0);
+      rThumbIp.rotation.set(deg2rad(pose.thIpFlex), 0, 0);
+
+      // 4. Fingers (MCP, PIP, DIP Flexion around Z: +deg bends into palm +X)
+      const isSingleFingerTest = (
+        state.movementKey === 'finger_pip_flexion' ||
+        state.movementKey === 'finger_dip_flexion'
+      ) && state.mode === 'mmt';
+
+      for (let i = 0; i < 4; i++) {
+        const chain = fingerChains[i];
+        if (isSingleFingerTest && i > 0) {
+          // In PIP and DIP MMT, the therapist holds the other fingers extended!
+          chain.mcpJoint.rotation.set(0, 0, 0);
+          chain.pipJoint.rotation.set(0, 0, 0);
+          chain.dipJoint.rotation.set(0, 0, 0);
+        } else {
+          chain.mcpJoint.rotation.set(0, 0, deg2rad(pose.fMcpFlex));
+          chain.pipJoint.rotation.set(0, 0, deg2rad(pose.fPipFlex));
+          chain.dipJoint.rotation.set(0, 0, deg2rad(pose.fDipFlex));
+        }
+      }
+    }
+
+    function getBoneGroup(name) {
+      if (name === 'thorax')   return thoraxGroup;
+      if (name === 'upperArm') return rUpperArm;
+      if (name === 'forearm')  return rForearmRot;
+      if (name === 'palm')     return rPalmGroup;
+      if (name === 'thumbCmc') return rThumbCmc;
+      if (name === 'thumbMp')  return rThumbMp;
+      if (name === 'thumbIp')  return rThumbIp;
+      if (name === 'indexMcp') return fingerChains[0].mcpJoint;
+      if (name === 'indexPip') return fingerChains[0].pipJoint;
+      if (name === 'indexDip') return fingerChains[0].dipJoint;
+      return rUpperArm;
+    }
+
+    // Update 3D Goniometer Position & Protractor Sector
+    function updateGoniometer(mv, currentDeg) {
+      const showGoni = (state.mode !== 'mmt');
+      goniGroup.visible = showGoni;
+      labelGoni.classList.toggle('visible', showGoni);
+      if (!showGoni) return;
+
+      humanRoot.updateMatrixWorld(true);
+
+      const isHand = (mv.category === 'hand');
+      const goniRadius = isHand ? 0.085 : 0.23;
+
+      const shWorldPos = new THREE.Vector3();
+      const elWorldPos = new THREE.Vector3();
+      const wrWorldPos = new THREE.Vector3();
+      rShoulderAnchor.getWorldPosition(shWorldPos);
+      rElbowJoint.getWorldPosition(elWorldPos);
+      rWristJoint.getWorldPosition(wrWorldPos);
+
+      let origin = shWorldPos.clone();
+      let startVec = new THREE.Vector3(0, -1, 0);
+      let moveVec  = elWorldPos.clone().sub(shWorldPos).normalize();
+
+      const faQuat = new THREE.Quaternion();
+      rForearmRot.getWorldQuaternion(faQuat);
+      const palmQuat = new THREE.Quaternion();
+      rPalmGroup.getWorldQuaternion(palmQuat);
+
+      if (mv.goniPlane === 'coronal') {
+        origin.copy(shWorldPos).add(new THREE.Vector3(0, 0, 0.07));
+        startVec.set(0, -1, 0);
+      } else if (mv.goniPlane === 'sagittal' || mv.goniPlane === 'sagittal_ext') {
+        origin.copy(shWorldPos).add(new THREE.Vector3(-0.07, 0, 0));
+        startVec.set(0, -1, 0);
+      } else if (mv.goniPlane === 'transverse') {
+        origin.copy(shWorldPos).add(new THREE.Vector3(0, 0.07, 0));
+        startVec.set(-1, 0, 0);
+      } else if (mv.goniPlane === 'elbow_rot') {
+        origin.copy(elWorldPos);
+        startVec.set(0, 0, 1);
+        moveVec = wrWorldPos.clone().sub(elWorldPos).normalize();
+      } else if (mv.goniPlane === 'elbow_sagittal') {
+        origin.copy(elWorldPos).add(new THREE.Vector3(-0.05, 0, 0));
+        startVec = elWorldPos.clone().sub(shWorldPos).normalize();
+        moveVec  = wrWorldPos.clone().sub(elWorldPos).normalize();
+      } else if (mv.goniPlane === 'wrist_rot') {
+        origin.copy(wrWorldPos);
+        startVec.set(0, 1, 0);
+        moveVec.set(0, 0, 1).applyQuaternion(palmQuat).normalize();
+      } else if (mv.goniPlane === 'wrist_flex_ext' || mv.goniPlane === 'wrist_dev') {
+        origin.copy(wrWorldPos);
+        startVec.set(0, -1, 0).applyQuaternion(faQuat).normalize();
+        moveVec.set(0, -1, 0).applyQuaternion(palmQuat).normalize();
+      } else if (mv.goniPlane === 'thumb_cmc_ext' || mv.goniPlane === 'thumb_cmc_abd') {
+        rThumbCmc.getWorldPosition(origin);
+        startVec.set(0, -1, 0).applyQuaternion(palmQuat).normalize();
+        const thQuat = new THREE.Quaternion();
+        rThumbCmc.getWorldQuaternion(thQuat);
+        moveVec.set(0, -1, 0).applyQuaternion(thQuat).normalize();
+      } else if (mv.goniPlane === 'thumb_mp') {
+        rThumbMp.getWorldPosition(origin);
+        const thCmcQ = new THREE.Quaternion();
+        const thMpQ  = new THREE.Quaternion();
+        rThumbCmc.getWorldQuaternion(thCmcQ);
+        rThumbMp.getWorldQuaternion(thMpQ);
+        startVec.set(0, -1, 0).applyQuaternion(thCmcQ).normalize();
+        moveVec.set(0, -1, 0).applyQuaternion(thMpQ).normalize();
+      } else if (mv.goniPlane === 'thumb_ip') {
+        rThumbIp.getWorldPosition(origin);
+        const thMpQ = new THREE.Quaternion();
+        const thIpQ = new THREE.Quaternion();
+        rThumbMp.getWorldQuaternion(thMpQ);
+        rThumbIp.getWorldQuaternion(thIpQ);
+        startVec.set(0, -1, 0).applyQuaternion(thMpQ).normalize();
+        moveVec.set(0, -1, 0).applyQuaternion(thIpQ).normalize();
+      } else if (mv.goniPlane === 'finger_mcp') {
+        fingerChains[0].mcpJoint.getWorldPosition(origin);
+        const mcpQ = new THREE.Quaternion();
+        fingerChains[0].mcpJoint.getWorldQuaternion(mcpQ);
+        startVec.set(0, -1, 0).applyQuaternion(palmQuat).normalize();
+        moveVec.set(0, -1, 0).applyQuaternion(mcpQ).normalize();
+      } else if (mv.goniPlane === 'finger_pip') {
+        fingerChains[0].pipJoint.getWorldPosition(origin);
+        const mcpQ = new THREE.Quaternion();
+        const pipQ = new THREE.Quaternion();
+        fingerChains[0].mcpJoint.getWorldQuaternion(mcpQ);
+        fingerChains[0].pipJoint.getWorldQuaternion(pipQ);
+        startVec.set(0, -1, 0).applyQuaternion(mcpQ).normalize();
+        moveVec.set(0, -1, 0).applyQuaternion(pipQ).normalize();
+      } else if (mv.goniPlane === 'finger_dip') {
+        fingerChains[0].dipJoint.getWorldPosition(origin);
+        const pipQ = new THREE.Quaternion();
+        const dipQ = new THREE.Quaternion();
+        fingerChains[0].pipJoint.getWorldQuaternion(pipQ);
+        fingerChains[0].dipJoint.getWorldQuaternion(dipQ);
+        startVec.set(0, -1, 0).applyQuaternion(pipQ).normalize();
+        moveVec.set(0, -1, 0).applyQuaternion(dipQ).normalize();
+      }
+
+      goniGroup.position.copy(origin);
+
+      statArmLine.geometry.setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        startVec.clone().multiplyScalar(goniRadius)
+      ]);
+      movArmLine.geometry.setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        moveVec.clone().multiplyScalar(goniRadius)
+      ]);
+
+      if (sectorMesh) {
+        goniGroup.remove(sectorMesh);
+        sectorMesh.geometry.dispose();
+      }
+      const steps = 40;
+      const vertices = [];
+      const arcAxis = new THREE.Vector3().crossVectors(startVec, moveVec);
+      if (arcAxis.lengthSq() < 1e-10) arcAxis.set(0, 0, 1);
+      arcAxis.normalize();
+      const arcAngle = startVec.angleTo(moveVec);
+      for (let i = 0; i < steps; i++) {
+        const t1 = i / steps;
+        const t2 = (i + 1) / steps;
+        const v1 = startVec.clone().applyAxisAngle(arcAxis, arcAngle * t1).multiplyScalar(goniRadius * 0.85);
+        const v2 = startVec.clone().applyAxisAngle(arcAxis, arcAngle * t2).multiplyScalar(goniRadius * 0.85);
+        vertices.push(0, 0, 0, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+      }
+      const sectorGeo = new THREE.BufferGeometry();
+      sectorGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      sectorMesh = new THREE.Mesh(sectorGeo, sectorMat);
+      goniGroup.add(sectorMesh);
+
+      axisRing.lookAt(camera.position);
+
+      const midVec = startVec.clone().applyAxisAngle(arcAxis, arcAngle * 0.5).multiplyScalar(goniRadius * 0.98);
+      projectToScreen(origin.clone().add(midVec), labelGoni);
+      labelGoni.textContent = `${Math.round(currentDeg)}°`;
+    }
+
+    function getBoneSurfaceRadius(boneName, localDir) {
+      if (boneName === 'upperArm') return 0.042;
+      if (boneName === 'forearm')  return 0.032;
+      if (boneName === 'palm')     return Math.hypot(localDir.x * 0.014, localDir.z * 0.036);
+      if (boneName === 'thumbCmc') return 0.0095;
+      if (boneName === 'thumbMp')  return 0.0082;
+      if (boneName === 'thumbIp')  return 0.0068;
+      if (boneName === 'indexMcp') return 0.0078;
+      if (boneName === 'indexPip') return 0.0068;
+      if (boneName === 'indexDip') return 0.0056;
+      return 0.030;
+    }
+
+    // Update 3D MMT Markers (Stabilize, Palpate, Resistance Shaded Gradient Areas + Static Yellow Motion Arrow)
+    function updateMMTMarkers(mv, elapsed) {
+      const showMMT = (state.mode === 'mmt');
+      mmtOverlayGroup.visible = showMMT;
+      heatmapUniforms.uShowZones.value = showMMT ? 1.0 : 0.0;
+      labelStab.classList.toggle('visible', showMMT);
+      labelPalp.classList.toggle('visible', showMMT);
+      labelRes.classList.toggle('visible', showMMT);
+      labelMotion.classList.toggle('visible', showMMT);
+      [leaderStab, leaderPalp, leaderRes, leaderMotion].forEach(l => l.setAttribute('visibility', showMMT ? 'visible' : 'hidden'));
+      if (!showMMT) return;
+
+      const key = state.movementKey;
+      const isHand = (mv.category === 'hand');
+      const isFinger = key.startsWith('finger_');
+      heatmapUniforms.uZoneRadius.value = isFinger ? 0.018 : (isHand ? 0.030 : 0.078);
+      // Resistance gradient is localized at the contact surface where resistance is applied
+      heatmapUniforms.uResRadius.value  = isFinger ? 0.016 : (isHand ? 0.026 : 0.068);
+
+      const stabBone = getBoneGroup(mv.markers.stabilize.bone);
+      const palpBone = getBoneGroup(mv.markers.palpate.bone);
+      const resBone  = getBoneGroup(mv.markers.resist.bone);
+
+      // Compute the exact kinematic direction of the patient's limb motion at `resBone`
+      // by stepping from `mv.mmtPose` in the patient's active movement direction (`-mv.resistDelta`).
+      const yDistal = mv.markers.resist.offset.y;
+      const isAxialForearm = (key === 'forearm_pronation' || key === 'forearm_supination');
+      const probeLocal = isAxialForearm
+        ? new THREE.Vector3(0, yDistal, 0.028)
+        : new THREE.Vector3(0, yDistal, 0);
+
+      applyArmAndHandKinematics(mv.mmtPose);
+      humanRoot.updateMatrixWorld(true);
+
+      const p0 = probeLocal.clone().applyMatrix4(resBone.matrixWorld);
+      const mmtBoneQuat = new THREE.Quaternion();
+      resBone.getWorldQuaternion(mmtBoneQuat);
+
+      const stepPose = {};
+      for (const k of Object.keys(DEFAULT_POSE)) {
+        stepPose[k] = mv.mmtPose[k] - (mv.resistDelta[k] || 0) * 0.25;
+      }
+      applyArmAndHandKinematics(stepPose);
+      humanRoot.updateMatrixWorld(true);
+      const p1 = probeLocal.clone().applyMatrix4(resBone.matrixWorld);
+
+      // Project the world motion vector into `resBone`'s cross-sectional plane (perpendicular to bone Y axis)
+      const worldDelta = p1.clone().sub(p0);
+      const localMotionDir = worldDelta.clone().applyQuaternion(mmtBoneQuat.clone().invert());
+      localMotionDir.y = 0;
+      if (localMotionDir.lengthSq() > 1e-8) {
+        localMotionDir.normalize();
+      } else {
+        localMotionDir.set(1, 0, 0);
+      }
+
+      // Place the resist area on the surface of `resBone` whose outward normal is `localMotionDir`,
+      // so the yellow motion arrow is simultaneously normal to the resist area AND parallel to the limb's motion!
+      const rSurf = getBoneSurfaceRadius(mv.markers.resist.bone, localMotionDir);
+      const localResSurfacePt = isAxialForearm
+        ? new THREE.Vector3(localMotionDir.x * rSurf * 0.9, yDistal, 0.018)
+        : new THREE.Vector3(localMotionDir.x * rSurf, yDistal, localMotionDir.z * rSurf);
+
+      // 1) Compute STATIC reference positions at `mv.mmtPose` (for stationary labels & yellow motion arrow)
+      applyArmAndHandKinematics(mv.mmtPose);
+      humanRoot.updateMatrixWorld(true);
+
+      const refStabPos = mv.markers.stabilize.offset.clone().applyMatrix4(stabBone.matrixWorld);
+      const refPalpPos = mv.markers.palpate.offset.clone().applyMatrix4(palpBone.matrixWorld);
+      const refResPos  = localResSurfacePt.clone().applyMatrix4(resBone.matrixWorld);
+      const patDir     = localMotionDir.clone().transformDirection(resBone.matrixWorld).normalize();
+
+      // 2) Compute LIVE positions at `state.currentPose` (for surface-painted shader gradients)
+      applyArmAndHandKinematics(state.currentPose);
+      humanRoot.updateMatrixWorld(true);
+
+      const liveStabPos   = mv.markers.stabilize.offset.clone().applyMatrix4(stabBone.matrixWorld);
+      const livePalpPos   = mv.markers.palpate.offset.clone().applyMatrix4(palpBone.matrixWorld);
+      const liveResPos    = localResSurfacePt.clone().applyMatrix4(resBone.matrixWorld);
+      const liveResNormal = localMotionDir.clone().transformDirection(resBone.matrixWorld).normalize();
+
+      heatmapUniforms.uZoneStab.value.copy(liveStabPos);
+      heatmapUniforms.uZonePalp.value.copy(livePalpPos);
+      heatmapUniforms.uZoneRes.value.copy(liveResPos);
+      heatmapUniforms.uResNormal.value.copy(liveResNormal);
+
+      // Single static yellow arrow emerging normal to the resist area and parallel to the patient's limb motion
+      motionTorqueGroup.visible = isAxialForearm;
+      motionLinearArrow.visible = !isAxialForearm;
+      if (isAxialForearm) {
+        const sign = key === 'forearm_supination' ? -1 : 1;
+        updateTorqueCurvedArrow(key, 0.052, sign);
+        const center = new THREE.Vector3(0, yDistal, 0).applyMatrix4(resBone.matrixWorld);
+        motionTorqueGroup.position.copy(center);
+        motionTorqueGroup.quaternion.copy(mmtBoneQuat);
+      }
+      const effortPulse = state.animatingResist ? 0.9 + 0.2 * (0.5 - 0.5 * Math.cos(elapsed * 5.5)) : 1;
+      const arrowLen = (isFinger ? 0.056 : (isHand ? 0.082 : 0.155)) * effortPulse;
+      const surfaceOffset = patDir.clone().multiplyScalar(isFinger ? 0.003 : (isHand ? 0.005 : 0.008));
+      motionLinearArrow.position.copy(refResPos).add(surfaceOffset);
+      motionLinearArrow.setDirection(patDir);
+      motionLinearArrow.setLength(arrowLen, arrowLen * 0.26, arrowLen * 0.18);
+
+      labelRes.textContent = "Resistance Area";
+      labelMotion.textContent = "Client Movement";
+      const obstR = isHand ? 0.024 : 0.055;
+      const arrowTip = refResPos.clone().add(patDir.clone().multiplyScalar(arrowLen));
+      layoutCallouts([
+        { key: 'stab', world: refStabPos, el: labelStab, line: leaderStab },
+        { key: 'palp', world: refPalpPos, el: labelPalp, line: leaderPalp },
+        { key: 'res', world: refResPos, el: labelRes, line: leaderRes },
+        { key: 'motion', world: isAxialForearm ? motionTorqueGroup.children.at(-1).getWorldPosition(new THREE.Vector3()) : arrowTip, el: labelMotion, line: leaderMotion }
+      ], [
+        { a: refStabPos, b: refStabPos, r: obstR },
+        { a: refPalpPos, b: refPalpPos, r: obstR },
+        { a: refResPos,  b: arrowTip,   r: obstR }
+      ]);
+    }
+
+    // =========================================================================
+    // COLLISION-AWARE CALLOUT LAYOUT
+    // Labels are placed in screen space at the nearest spot that does not overlap
+    // the projected body (capsules per bone), the markers, the HUD, or each other.
+    // A dashed leader line connects each label to its marker.
+    // =========================================================================
+    const leaderStab = document.getElementById('leader-stab');
+    const leaderPalp = document.getElementById('leader-palp');
+    const leaderRes  = document.getElementById('leader-res');
+    const leaderMotion = document.getElementById('leader-motion');
+    const calloutMemory = {}; // key -> { dx, dy, x, y } for frame-to-frame stability
+
+    const _tmpV = new THREE.Vector3();
+    function localPt(obj, x, y, z) {
+      return obj.localToWorld(new THREE.Vector3(x, y, z));
+    }
+    function worldPos(obj) {
+      return obj.getWorldPosition(new THREE.Vector3());
+    }
+
+    // World-space capsules approximating the transparent body silhouette
+    function getBodyCapsules() {
+      const caps = [];
+      const add = (a, b, r) => caps.push({ a, b, r });
+      add(localPt(headGroup, 0, 0.03, 0), localPt(headGroup, 0, -0.05, 0.02), 0.115);   // head
+      add(worldPos(neckGroup), localPt(pelvisGroup, 0, 0.12, 0), 0.17);                    // torso
+      add(localPt(pelvisGroup, 0, 0.12, 0), worldPos(pelvisGroup), 0.17);                  // waist/pelvis
+      add(worldPos(rShoulderAnchor), worldPos(lShoulderAnchor), 0.06);                     // shoulders
+      // Right (tested) arm + hand
+      add(worldPos(rShoulderAnchor), worldPos(rElbowJoint), 0.05);
+      add(worldPos(rElbowJoint), worldPos(rWristJoint), 0.04);
+      add(worldPos(rWristJoint), localPt(rPalmGroup, 0, -0.075, 0), 0.042);
+      fingerChains.forEach((c, i) => {
+        add(worldPos(c.mcpJoint), localPt(c.dipJoint, 0, -fingerLengths[i][2], 0), 0.009);
+      });
+      add(worldPos(rThumbCmc), localPt(rThumbIp, 0, -0.021, 0), 0.01);
+      // Left arm
+      add(worldPos(lShoulderAnchor), worldPos(lElbowJoint), 0.048);
+      add(worldPos(lElbowJoint), localPt(lElbowJoint, 0, -0.38, 0), 0.04);
+      // Legs + feet
+      [rLeg, lLeg].forEach(leg => {
+        add(worldPos(leg.hip), worldPos(leg.knee), 0.07);
+        add(worldPos(leg.knee), localPt(leg.knee, 0, -0.43, 0), 0.05);
+        add(localPt(leg.knee, 0, -0.45, -0.04), localPt(leg.knee, 0, -0.45, 0.13), 0.04);
+      });
+      return caps;
+    }
+
+    // Project a world capsule into a screen capsule {ax, ay, bx, by, r} (pixels)
+    function projectCapsule(cap, W, H) {
+      const pa = cap.a.clone().project(camera);
+      const pb = cap.b.clone().project(camera);
+      if (pa.z > 1 && pb.z > 1) return null;
+      const depthA = -_tmpV.copy(cap.a).applyMatrix4(camera.matrixWorldInverse).z;
+      const depthB = -_tmpV.copy(cap.b).applyMatrix4(camera.matrixWorldInverse).z;
+      const focalPx = (H / 2) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const depth = Math.max(0.05, Math.min(depthA, depthB));
+      return {
+        ax: (pa.x * 0.5 + 0.5) * W, ay: (-pa.y * 0.5 + 0.5) * H,
+        bx: (pb.x * 0.5 + 0.5) * W, by: (-pb.y * 0.5 + 0.5) * H,
+        r: cap.r * focalPx / depth
+      };
+    }
+
+    // Distance from point to an axis-aligned rect (0 if inside)
+    function pointRectDist(px, py, rc) {
+      const dx = Math.max(rc.x - px, 0, px - (rc.x + rc.w));
+      const dy = Math.max(rc.y - py, 0, py - (rc.y + rc.h));
+      return Math.hypot(dx, dy);
+    }
+
+    function capsuleHitsRect(c, rc) {
+      const steps = Math.max(2, Math.ceil(Math.hypot(c.bx - c.ax, c.by - c.ay) / Math.max(6, c.r * 0.5)));
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        if (pointRectDist(c.ax + (c.bx - c.ax) * t, c.ay + (c.by - c.ay) * t, rc) < c.r) return true;
+      }
+      return false;
+    }
+
+    function rectsOverlap(a, b) {
+      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    function hudRects() {
+      const base = container.getBoundingClientRect();
+      return Array.from(container.querySelectorAll('.hud-pill, .camera-bar, .viewport-legend')).map(el => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left - base.left - 6, y: r.top - base.top - 6, w: r.width + 12, h: r.height + 12 };
+      });
+    }
+
+    function rectIsClear(rc, screenCaps, blockedRects, W, H) {
+      const M = 6;
+      if (rc.x < M || rc.y < M || rc.x + rc.w > W - M || rc.y + rc.h > H - M) return false;
+      for (const b of blockedRects) if (rectsOverlap(rc, b)) return false;
+      for (const c of screenCaps) if (capsuleHitsRect(c, rc)) return false;
+      return true;
+    }
+
+    function layoutCallouts(items, extraObstacles) {
+      const W = container.clientWidth;
+      const H = container.clientHeight;
+      camera.updateMatrixWorld();
+
+      const screenCaps = getBodyCapsules().concat(extraObstacles)
+        .map(c => projectCapsule(c, W, H))
+        .filter(Boolean);
+      // Small padding so labels keep a visible gap from the body edge
+      screenCaps.forEach(c => { c.r += 6; });
+
+      const blocked = hudRects();
+
+      // Screen-space body centroid: labels prefer to move away from it
+      const torso = worldPos(neckGroup).add(worldPos(pelvisGroup)).multiplyScalar(0.5).project(camera);
+      const cx = (torso.x * 0.5 + 0.5) * W;
+      const cy = (-torso.y * 0.5 + 0.5) * H;
+
+      for (const item of items) {
+        const p = item.world.clone().project(camera);
+        if (p.z > 1) {
+          item.el.style.opacity = '0';
+          item.line.setAttribute('visibility', 'hidden');
+          continue;
+        }
+        const ax = (p.x * 0.5 + 0.5) * W;
+        const ay = (-p.y * 0.5 + 0.5) * H;
+        const lw = item.el.offsetWidth || 90;
+        const lh = item.el.offsetHeight || 22;
+
+        const mem = calloutMemory[item.key];
+        // Freeze label position completely during "Resist Against MMT" (unless the user is actively orbiting the camera)
+        if (state.animatingResist && mem && mem.x !== undefined && !camTransitioning) {
+          const x = mem.x;
+          const y = mem.y;
+          item.el.style.left = `${x}px`;
+          item.el.style.top  = `${y}px`;
+          item.el.style.opacity = '';
+          blocked.push({ x: x - 4, y: y - 4, w: lw + 8, h: lh + 8 });
+          const ex = Math.min(Math.max(ax, x), x + lw);
+          const ey = Math.min(Math.max(ay, y), y + lh);
+          item.line.setAttribute('x1', ax);
+          item.line.setAttribute('y1', ay);
+          item.line.setAttribute('x2', ex);
+          item.line.setAttribute('y2', ey);
+          item.line.setAttribute('visibility', 'visible');
+          continue;
+        }
+
+        const mkRect = (dx, dy) => ({ x: ax + dx - lw / 2, y: ay + dy - lh / 2, w: lw, h: lh });
+
+        // 1) Reuse last frame's offset if still clear (prevents jitter while animating)
+        let chosen = null;
+        if (mem && rectIsClear(mkRect(mem.dx, mem.dy), screenCaps, blocked, W, H)) {
+          chosen = { dx: mem.dx, dy: mem.dy };
+        }
+
+        // 2) Otherwise search outward rings, preferring directions away from the torso
+        if (!chosen) {
+          const awayAng = Math.atan2(ay - cy, ax - cx);
+          const angles = [];
+          for (let k = 0; k < 24; k++) {
+            const off = (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 12);
+            angles.push(awayAng + off);
+          }
+          search:
+          for (let dist = 40; dist <= Math.max(W, H); dist += 18) {
+            for (const ang of angles) {
+              const dx = Math.cos(ang) * dist;
+              const dy = Math.sin(ang) * dist;
+              if (rectIsClear(mkRect(dx, dy), screenCaps, blocked, W, H)) {
+                chosen = { dx, dy };
+                break search;
+              }
+            }
+          }
+        }
+
+        // 3) No clear spot (e.g. extreme zoom): park it along the nearest viewport edge
+        if (!chosen) {
+          const leftSide = ax < W / 2;
+          const tx = leftSide ? 10 + lw / 2 : W - 10 - lw / 2;
+          chosen = { dx: tx - ax, dy: 0 };
+        }
+
+        calloutMemory[item.key] = chosen;
+        const rc = mkRect(chosen.dx, chosen.dy);
+        const x = rc.x;
+        const y = rc.y;
+        calloutMemory[item.key].x = x;
+        calloutMemory[item.key].y = y;
+
+        item.el.style.left = `${x}px`;
+        item.el.style.top = `${y}px`;
+        item.el.style.opacity = '';
+
+        // Later labels must avoid this one
+        blocked.push({ x: x - 6, y: y - 6, w: lw + 12, h: lh + 12 });
+
+        // Leader line: from marker to closest point on the label's border
+        const ex = Math.min(Math.max(ax, x), x + lw);
+        const ey = Math.min(Math.max(ay, y), y + lh);
+        item.line.setAttribute('x1', ax);
+        item.line.setAttribute('y1', ay);
+        item.line.setAttribute('x2', ex);
+        item.line.setAttribute('y2', ey);
+        item.line.setAttribute('visibility', 'visible');
+      }
+    }
+
+    function projectToScreen(worldVec, domElem) {
+      const v = worldVec.clone().project(camera);
+      if (v.z > 1) {
+        domElem.style.opacity = '0';
+        return;
+      }
+      const x = (v.x * 0.5 + 0.5) * container.clientWidth;
+      const y = (-(v.y * 0.5) + 0.5) * container.clientHeight;
+      domElem.style.left = `${x}px`;
+      domElem.style.top  = `${y}px`;
+      domElem.style.opacity = '';
+    }
+
+    // =========================================================================
+    // 6. EVENT LISTENERS
+    // =========================================================================
+    function selectMovement(key) {
+      state.movementKey = key;
+      const newMv = MOVEMENTS[state.movementKey];
+      // Clear cached callout offsets so labels re-layout cleanly for the new camera angle
+      for (const k of Object.keys(calloutMemory)) delete calloutMemory[k];
+      updateMovementUI();
+
+      if (state.animatingResist) {
+        state.animatingResist = false;
+        toggleResistAnimation();
+      } else if (state.mode === 'mmt') {
+        setMmtPosition();
+      } else if (state.animatingROM) {
+        state.progress = 0.0;
+        state.romPauseTimer = 0.0;
+        angleSlider.value = 0;
+        state.targetPose = { ...newMv.startPose };
+        state.currentPose = { ...newMv.startPose };
+        applyPosture(newMv.romPosture);
+        syncControlButtonsUI();
+      } else if (state.mode === 'end') {
+        setEndPosition();
+      } else {
+        setStartPosition();
+      }
+
+      focusCameraForMovement(state.movementKey);
+    }
+    movementButtons.forEach((button, index) => {
+      button.addEventListener('click', () => selectMovement(button.dataset.movement));
+      button.addEventListener('keydown', event => {
+        let next = index;
+        if (event.key === 'ArrowDown') next = (index + 1) % movementButtons.length;
+        else if (event.key === 'ArrowUp') next = (index - 1 + movementButtons.length) % movementButtons.length;
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = movementButtons.length - 1;
+        else return;
+        event.preventDefault();
+        movementButtons[next].focus();
+        movementButtons[next].click();
+      });
+    });
+
+    btnStart.addEventListener('click', setStartPosition);
+    btnEnd.addEventListener('click', setEndPosition);
+    btnAnimRom.addEventListener('click', toggleRomAnimation);
+    btnMmt.addEventListener('click', setMmtPosition);
+    btnAnimResist.addEventListener('click', toggleResistAnimation);
+
+    angleSlider.addEventListener('input', () => {
+      const leavingMMT = state.mode === 'mmt';
+      state.animatingROM = false;
+      state.animatingResist = false;
+      state.mode = 'scrub';
+      state.progress = parseFloat(angleSlider.value) / 100;
+      const mv = MOVEMENTS[state.movementKey];
+      applyPosture(mv.romPosture);
+      state.targetPose = lerpPose(mv.startPose, mv.endPose, state.progress);
+      if (leavingMMT) {
+        state.currentPose = { ...state.targetPose };
+        focusCameraForMovement(state.movementKey);
+      }
+      syncControlButtonsUI();
+    });
+
+    // Camera Preset Buttons
+    document.querySelectorAll('[data-cam]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = btn.getAttribute('data-cam');
+        const targetY = 0.85;
+
+        if (preset === 'hand' && MOVEMENTS[state.movementKey].category === 'hand') {
+          focusCameraForMovement(state.movementKey);
+          return;
+        }
+        autoHandCamera = false;
+        if (preset === 'hand') {
+          camGoalTarget.set(-0.20, 0.68, 0.21);
+          camGoalPos.set(-0.56, 1.12, -0.18);
+        } else if (preset === 'front') {
+          camGoalTarget.set(-0.12, targetY, 0);
+          camGoalPos.set(0.0, targetY + 0.15, 2.35);
+        } else if (preset === 'side') {
+          camGoalTarget.set(-0.12, targetY, 0);
+          camGoalPos.set(-2.25, targetY + 0.1, 0.0);
+        } else if (preset === 'top') {
+          camGoalTarget.set(-0.12, targetY, 0);
+          camGoalPos.set(-0.12, 2.65, 0.08);
+        } else if (preset === 'threequarter') {
+          camGoalTarget.set(-0.12, targetY, 0);
+          camGoalPos.set(-1.35, targetY + 0.55, 1.85);
+        }
+        camTransitionStartTime = performance.now();
+        camTransitioning = true;
+      });
+    });
+
+    // Cancel camera auto-glide if user manually drags orbit controls
+    canvas.addEventListener('pointerdown', () => {
+      camTransitioning = false;
+      autoHandCamera = false;
+    });
+
+    btnToggleTable.addEventListener('click', () => {
+      state.tableMode = (state.tableMode === 'auto') ? 'hide' : 'auto';
+      btnToggleTable.textContent = `Table: ${state.tableMode === 'auto' ? 'Auto' : 'Hidden'}`;
+      updateFurnitureVisibility();
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    // =========================================================================
+    // 7. MAIN ANIMATION LOOP
+    // =========================================================================
+    const clock = new THREE.Clock();
+
+    updateMovementUI();
+    toggleRomAnimation();
+    focusCameraForMovement(state.movementKey);
+    camera.position.copy(camGoalPos);
+    controls.target.copy(camGoalTarget);
+    camTransitioning = false;
+    state.currentPose = { ...state.targetPose };
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.getElapsedTime();
+      const mv = MOVEMENTS[state.movementKey];
+
+      // Smooth camera transition when switching movements or clicking camera presets
+      if (camTransitioning) {
+        const alpha = Math.min(1.0, dt * 8.0);
+        camera.position.lerp(camGoalPos, alpha);
+        controls.target.lerp(camGoalTarget, alpha);
+        // Clear cached callout memory during camera glide so labels adapt smoothly to the new view plane
+        for (const k of Object.keys(calloutMemory)) delete calloutMemory[k];
+        if (
+          (camera.position.distanceTo(camGoalPos) < 0.015 && controls.target.distanceTo(camGoalTarget) < 0.008) ||
+          (performance.now() - camTransitionStartTime > 900)
+        ) {
+          camera.position.copy(camGoalPos);
+          controls.target.copy(camGoalTarget);
+          camTransitioning = false;
+        }
+      }
+
+      // Handle Toggle 3: One-way Start -> End ROM Animation with 500ms hold at end & instant warp to start
+      if (state.animatingROM) {
+        if (state.progress < 1.0) {
+          state.progress = Math.min(1.0, state.progress + dt * 0.55);
+          const eased = 0.5 - 0.5 * Math.cos(state.progress * Math.PI);
+          state.targetPose = lerpPose(mv.startPose, mv.endPose, eased);
+          state.currentPose = { ...state.targetPose };
+          angleSlider.value = Math.round(eased * 100);
+          if (state.progress >= 1.0) {
+            state.romPauseTimer = 0.0;
+          }
+        } else {
+          state.targetPose = { ...mv.endPose };
+          state.currentPose = { ...mv.endPose };
+          angleSlider.value = 100;
+          state.romPauseTimer += dt;
+          if (state.romPauseTimer >= 0.5) {
+            state.progress = 0.0;
+            state.romPauseTimer = 0.0;
+            state.targetPose = { ...mv.startPose };
+            state.currentPose = { ...mv.startPose };
+            angleSlider.value = 0;
+          }
+        }
+      }
+
+      // Handle Toggle 5: visible resisted-effort animation against examiner force
+      if (state.animatingResist && state.mode === 'mmt') {
+        const wave = 0.5 + 0.5 * Math.sin(elapsed * 5.5);
+        state.targetPose = getResistedPose(mv, elapsed);
+        state.currentPose = { ...state.targetPose };
+        updateBodyPartHighlights(0.55 + 0.35 * wave);
+      } else {
+        updateBodyPartHighlights((state.mode === 'mmt') ? 0.42 : 0.30);
+      }
+
+      if (!state.animatingROM) {
+        const smoothSpeed = Math.min(1.0, dt * 10.5);
+        state.currentPose = lerpPose(state.currentPose, state.targetPose, smoothSpeed);
+      }
+
+      applyArmAndHandKinematics(state.currentPose);
+
+      const currentDeg = getMovementAngle(mv, state.currentPose);
+      angleReadout.textContent = state.mode === 'mmt'
+        ? `MMT ${state.animatingResist ? 'effort' : 'hold'}: ${Math.round(currentDeg)}°`
+        : `${Math.round(currentDeg)}° / ${mv.maxAngle}°`;
+
+      controls.update();
+      if (autoHandCamera) {
+        // Keep auto-framing above the live limb throughout ROM and resisted effort.
+        const floor = getHandCameraFloor();
+        camera.position.y = Math.max(camera.position.y, floor);
+        camGoalPos.y = Math.max(camGoalPos.y, floor);
+        camera.lookAt(controls.target);
+        camera.updateMatrixWorld(true);
+      }
+      updateGoniometer(mv, currentDeg);
+      updateMMTMarkers(mv, elapsed);
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
