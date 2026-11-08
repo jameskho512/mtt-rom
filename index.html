@@ -133,10 +133,30 @@
       margin-bottom: 1px;
     }
 
-    .btn-grid-2 {
+    .btn-grid-2,
+    .rom-controls-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
+    }
+
+    .rom-controls-grid #btn-anim-rom {
+      grid-column: 1 / -1;
+    }
+
+    .mmt-controls-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    /* Mobile Top Bar (hidden on desktop, shown on <=850px) */
+    .mobile-top-bar {
+      display: none;
+    }
+
+    #btn-reset-view {
+      display: none;
     }
 
     .ctrl-btn {
@@ -489,50 +509,253 @@
       overflow: visible;
     }
 
-    body { display: grid; grid-template-columns: 250px 350px minmax(0, 1fr); height: 100dvh; }
-    .sidebar { width: 350px; min-width: 0; max-width: none; }
+    body { display: grid; grid-template-columns: 230px 320px minmax(0, 1fr); height: 100dvh; }
+    .sidebar { width: 320px; min-width: 0; max-width: none; }
     #viewport-container { min-width: 0; }
-    .movement-column { overflow-y: auto; height: 100%; padding: 16px 12px; background: #12101d; border-right: 1px solid var(--panel-border); }
-    .movement-heading { font-weight: 700; font-size: 1rem; padding: 0 6px 12px; display: flex; justify-content: space-between; }
+    .movement-column { display: flex; flex-direction: column; overflow: hidden; min-height: 0; height: 100%; padding: 8px; gap: 3px; background: #12101d; border-right: 1px solid var(--panel-border); }
+    .movement-heading { font-weight: 700; flex: 0 0 24px; padding: 0 5px 4px; font-size: min(14px, 1.9dvh); display: flex; justify-content: space-between; align-items: center; }
     .movement-heading span { color: var(--accent-rom); }
-    .movement-group { margin-bottom: 16px; }
-    .movement-group h2 { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: #c9c1dc; padding: 8px 6px; }
-    .movement-item { display: flex; flex-direction: column; gap: 3px; width: 100%; min-height: 44px; padding: 9px 10px; margin: 3px 0; border: 1px solid transparent; border-radius: 8px; color: #eeeaf6; background: transparent; text-align: left; cursor: pointer; font: inherit; font-size: .81rem; }
-    .movement-item small { color: #bcb3cf; font-variant-numeric: tabular-nums; }
+    .movement-group { display: flex; flex-direction: column; flex: 4 1 0; min-height: 0; margin: 0; }
+    .movement-group:first-of-type { flex-grow: 7; }
+    .movement-group h2 { flex: 0 0 min(19px, 2.6dvh); display: flex; align-items: center; margin: 0; padding: 0 5px; font-size: min(10px, 1.4dvh); text-transform: uppercase; letter-spacing: .07em; color: #c9c1dc; }
+    .movement-item { display: flex; flex: 1 1 0; flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; width: 100%; min-height: 0; margin: 0; padding: 0 6px; border: 1px solid transparent; border-radius: 5px; color: #eeeaf6; background: transparent; text-align: left; cursor: pointer; font: inherit; font-size: min(12px, 1.65dvh); line-height: 1; white-space: nowrap; }
+    .movement-item span { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .movement-item small { flex-shrink: 0; font-size: .91em; white-space: nowrap; color: #bcb3cf; font-variant-numeric: tabular-nums; }
     .movement-item:hover { background: #252036; }
     .movement-item[aria-pressed="true"] { background: #153b50; border-color: #38bdf8; box-shadow: inset 3px 0 #38bdf8; color: #fff; }
     .movement-item[aria-pressed="true"] small { color: #b4e9ff; }
-    button:focus-visible, a:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+    button:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
     .clinical-note { font-size: .76rem; line-height: 1.5; color: #c9c1dc; }
     .clinical-note a { color: #9bdfff; }
     .kv-row span { min-width: 0; overflow-wrap: anywhere; }
-    @media (max-width: 1100px) { body { grid-template-columns: 220px 310px minmax(0, 1fr); } .sidebar { width: 310px; padding: 14px; } }
-    @media (max-width: 850px) {
-      body { grid-template-columns: 190px minmax(0, 1fr); grid-template-rows: 48dvh 52dvh; }
-      .movement-column { grid-column: 1; grid-row: 1 / 3; }
-      .sidebar { grid-column: 2; grid-row: 2; width: 100%; height: 100%; border-top: 1px solid var(--panel-border); }
-      #viewport-container { grid-column: 2; grid-row: 1; height: 100%; }
-      .hud-movement-name { font-size: .9rem; } .camera-bar { gap: 3px; } .cam-btn { min-height: 44px; }
-      .viewport-hud { top: 8px; left: 8px; right: 8px; gap: 6px; }
-      .viewport-legend { display: none; }
-    }
-    @media (max-width: 480px) { body { grid-template-columns: 138px minmax(0, 1fr); } .movement-column { padding: 12px 6px; } .movement-item { font-size: .74rem; padding: 8px 6px; } .sidebar { padding: 10px; } .btn-grid-2 { grid-template-columns: 1fr; } .brand-badge { display: none; } .kv-row { flex-direction: column; gap: 2px; } }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+    .lbl-mobile { display: none; }
 
-    /* Allocate the available column height across all 23 single-line motions. */
-    body { grid-template-columns: 230px 320px minmax(0, 1fr); }
-    .sidebar { width: 320px; }
-    .movement-column { display: flex; flex-direction: column; overflow: hidden; min-height: 0; padding: 8px; gap: 3px; }
-    .movement-heading { flex: 0 0 24px; padding: 0 5px 4px; font-size: min(14px, 1.9dvh); align-items: center; }
-    .movement-group { display: flex; flex-direction: column; flex: 4 1 0; min-height: 0; margin: 0; }
-    .movement-group:first-of-type { flex-grow: 7; }
-    .movement-group h2 { flex: 0 0 min(19px, 2.6dvh); display: flex; align-items: center; margin: 0; padding: 0 5px; font-size: min(10px, 1.4dvh); }
-    .movement-item { flex: 1 1 0; flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; min-height: 0; margin: 0; padding: 0 6px; border-radius: 5px; font-size: min(12px, 1.65dvh); line-height: 1; white-space: nowrap; }
-    .movement-item span { white-space: nowrap; font-variant-numeric: tabular-nums; }
-    .movement-item small { flex-shrink: 0; font-size: .91em; white-space: nowrap; }
-    @media (max-width: 1100px) { body { grid-template-columns: 220px 290px minmax(0, 1fr); } .sidebar { width: 290px; } }
-    @media (max-width: 850px) { body { grid-template-columns: 205px minmax(0, 1fr); } .sidebar { width: 100%; } }
-    @media (max-width: 480px) { body { grid-template-columns: 175px minmax(0, 1fr); } .movement-column { padding: 6px 4px; } .movement-item { padding: 0 4px; gap: 3px; font-size: min(10px, 1.65dvh); } }
+    @media (max-width: 1100px) {
+      body { grid-template-columns: 220px 290px minmax(0, 1fr); }
+      .sidebar { width: 290px; padding: 14px; }
+    }
+
+    @media (max-width: 850px) {
+      body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 53dvh minmax(0, 1fr);
+        height: 100dvh;
+        width: 100vw;
+        max-width: 100vw;
+        overflow: hidden;
+      }
+      .movement-column {
+        display: none !important;
+      }
+      .mobile-top-bar {
+        grid-column: 1;
+        grid-row: 1;
+        min-width: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 7px 10px 6px;
+        background: rgba(14, 11, 24, 0.94);
+        border-bottom: 1px solid var(--panel-border);
+        z-index: 30;
+      }
+      .mobile-nav-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        width: 100%;
+      }
+      .mobile-step-btn {
+        flex: 0 0 36px;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.07);
+        color: var(--text-primary);
+        font-size: 1.15rem;
+        font-weight: 700;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .mobile-step-btn:active {
+        background: rgba(56, 189, 248, 0.25);
+        border-color: var(--accent-rom);
+      }
+      .mobile-movement-select {
+        flex: 1 1 0%;
+        width: 0;
+        min-width: 0;
+        height: 36px;
+        padding: 0 24px 0 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        background-color: #161324;
+        color: #fff;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+        appearance: auto;
+        cursor: pointer;
+      }
+      .mobile-status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 0 2px;
+        font-size: 0.72rem;
+        font-weight: 600;
+      }
+      #mobile-hud-subtitle {
+        color: var(--accent-rom);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #mobile-posture-pill {
+        flex-shrink: 0;
+        color: var(--text-secondary);
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: rgba(255, 255, 255, 0.07);
+        padding: 1px 7px;
+        border-radius: 999px;
+      }
+      #viewport-container {
+        grid-column: 1;
+        grid-row: 2;
+        width: 100%;
+        height: 100%;
+      }
+      .viewport-hud {
+        top: 8px;
+        right: 8px;
+        left: auto;
+        justify-content: flex-end;
+        gap: 4px;
+      }
+      .hud-pill {
+        display: none;
+      }
+      .camera-bar {
+        padding: 3px;
+        gap: 4px;
+        background: rgba(14, 11, 24, 0.76);
+        border-radius: 8px;
+      }
+      .camera-bar [data-cam] {
+        display: none;
+      }
+      #btn-reset-view {
+        display: inline-flex;
+        align-items: center;
+      }
+      .cam-btn {
+        min-height: 28px;
+        padding: 4px 8px;
+        font-size: 0.68rem;
+      }
+      .viewport-legend {
+        display: none;
+      }
+      .marker-label {
+        font-size: 0.64rem;
+        padding: 3px 6px;
+        border-radius: 5px;
+      }
+      .sidebar {
+        grid-column: 1;
+        grid-row: 3;
+        width: 100%;
+        height: 100%;
+        padding: 8px 10px 14px;
+        gap: 7px;
+        border-right: none;
+        border-top: 1px solid var(--panel-border);
+        overflow-y: auto;
+      }
+      .brand-header,
+      #posture-indicator {
+        display: none;
+      }
+      .lbl-desktop {
+        display: none;
+      }
+      .lbl-mobile {
+        display: inline;
+      }
+      .mode-section {
+        padding: 8px;
+        gap: 5px;
+        border-radius: 10px;
+      }
+      .mode-section-header {
+        font-size: 0.65rem;
+        margin-bottom: 0;
+      }
+      .rom-controls-grid {
+        grid-template-columns: 0.88fr 0.88fr 1.34fr;
+        gap: 5px;
+      }
+      .rom-controls-grid #btn-anim-rom {
+        grid-column: auto;
+      }
+      .mmt-controls-grid {
+        grid-template-columns: 1fr 1.15fr;
+        gap: 5px;
+      }
+      .ctrl-btn {
+        min-height: 36px;
+        padding: 5px 7px;
+        gap: 5px;
+        font-size: 0.74rem;
+        border-radius: 8px;
+      }
+      .ctrl-num {
+        width: 18px;
+        height: 18px;
+        font-size: 0.68rem;
+        border-radius: 4px;
+      }
+      .toggle-pill {
+        font-size: 0.6rem;
+        padding: 2px 5px;
+      }
+      .scrubber-box {
+        padding: 6px 10px;
+        gap: 3px;
+        border-radius: 8px;
+      }
+      .scrubber-top {
+        font-size: 0.72rem;
+      }
+      .angle-readout {
+        font-size: 0.82rem;
+      }
+      .clinical-card {
+        padding: 9px 10px;
+        gap: 7px;
+        border-radius: 10px;
+      }
+      .kv-row {
+        font-size: 0.73rem;
+        gap: 5px;
+      }
+      .kv-row strong {
+        min-width: 66px;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
   </style>
   <!-- Import Three.js & OrbitControls via CDN -->
   <script type="importmap">
@@ -545,6 +768,53 @@
   </script>
 </head>
 <body>
+
+  <!-- Mobile Top Movement Selector Bar (visible on <=850px) -->
+  <header class="mobile-top-bar" aria-label="Mobile movement selector">
+    <div class="mobile-nav-row">
+      <button type="button" class="mobile-step-btn" id="btn-prev-mv" title="Previous movement" aria-label="Previous movement">‹</button>
+      <select id="mobile-movement-select" class="mobile-movement-select" aria-label="Select anatomical movement">
+        <optgroup label="Shoulder">
+          <option value="shoulder_abduction">1. Shoulder Abduction (0–170°)</option>
+          <option value="shoulder_flexion">2. Shoulder Flexion (0–170°)</option>
+          <option value="shoulder_extension">3. Shoulder Extension (0–60°)</option>
+          <option value="shoulder_ir">4. Shoulder Internal Rotation (0–60°)</option>
+          <option value="shoulder_er">5. Shoulder External Rotation (0–80°)</option>
+          <option value="shoulder_horiz_add">6. Shoulder Horiz. Adduction (0–130°)</option>
+          <option value="shoulder_horiz_abd">7. Shoulder Horiz. Abduction (0–45°)</option>
+        </optgroup>
+        <optgroup label="Elbow &amp; Forearm">
+          <option value="elbow_flexion">8. Elbow Flexion (0–145°)</option>
+          <option value="elbow_extension">9. Elbow Extension (145–0°)</option>
+          <option value="forearm_pronation">10. Forearm Pronation (0–85°)</option>
+          <option value="forearm_supination">11. Forearm Supination (0–85°)</option>
+        </optgroup>
+        <optgroup label="Wrist">
+          <option value="wrist_flexion">12. Wrist Flexion (0–80°)</option>
+          <option value="wrist_extension">13. Wrist Extension (0–70°)</option>
+          <option value="wrist_ulnar_dev">14. Wrist Ulnar Deviation (0–30°)</option>
+          <option value="wrist_radial_dev">15. Wrist Radial Deviation (0–20°)</option>
+        </optgroup>
+        <optgroup label="Thumb">
+          <option value="thumb_radial_abd">16. Thumb Radial ABD / CMC Ext (0–50°)</option>
+          <option value="thumb_palmar_abd">17. Thumb Palmar ABD / CMC Abd (0–50°)</option>
+          <option value="thumb_mp_flexion">18. Thumb MP Flexion (0–50°)</option>
+          <option value="thumb_ip_flexion">19. Thumb IP Flexion (0–90°)</option>
+        </optgroup>
+        <optgroup label="Fingers">
+          <option value="finger_mcp_flexion">20. Finger MCP Flexion (0–90°)</option>
+          <option value="finger_mcp_hyperext">21. Finger MCP Hyperextension (0–45°)</option>
+          <option value="finger_pip_flexion">22. Finger PIP Flexion (0–110°)</option>
+          <option value="finger_dip_flexion">23. Finger DIP Flexion (0–80°)</option>
+        </optgroup>
+      </select>
+      <button type="button" class="mobile-step-btn" id="btn-next-mv" title="Next movement" aria-label="Next movement">›</button>
+    </div>
+    <div class="mobile-status-row">
+      <span id="mobile-hud-subtitle">3. Animating ROM (0° → 170°)</span>
+      <span id="mobile-posture-pill">Client: Seated</span>
+    </div>
+  </header>
 
   <nav class="movement-column" aria-label="Anatomical movements"><div class="movement-heading">Movements <span>23</span></div>
     <section class="movement-group" aria-label="Shoulder"><h2>Shoulder</h2>
@@ -593,44 +863,51 @@
         <span id="rom-range-badge">0° – 170°</span>
       </div>
 
-      <div class="btn-grid-2">
+      <div class="rom-controls-grid">
         <!-- 1. Starting Position -->
         <button type="button" class="ctrl-btn" id="btn-start" title="Show anatomical starting position (0°)">
           <span class="ctrl-num">1</span>
-          <span>Start Position</span>
+          <span class="lbl-desktop">Start Position</span>
+          <span class="lbl-mobile">Start</span>
         </button>
 
         <!-- 2. Ending Position -->
         <button type="button" class="ctrl-btn" id="btn-end" title="Show end of normal Range of Motion">
           <span class="ctrl-num">2</span>
-          <span>End Position</span>
+          <span class="lbl-desktop">End Position</span>
+          <span class="lbl-mobile">End</span>
+        </button>
+
+        <!-- 3. Toggle Animation between Start and End -->
+        <button type="button" class="ctrl-btn active-rom" id="btn-anim-rom" aria-pressed="true" title="Toggle one-way animation from Start to End ROM (500ms hold at end, then warp to start)">
+          <span class="ctrl-num">3</span>
+          <span class="lbl-desktop">Animate Start → End ROM</span>
+          <span class="lbl-mobile">Animate</span>
+          <span class="toggle-pill" id="pill-anim-rom">ON</span>
         </button>
       </div>
 
-      <!-- 3. Toggle Animation between Start and End -->
-      <button type="button" class="ctrl-btn active-rom" id="btn-anim-rom" aria-pressed="true" title="Toggle one-way animation from Start to End ROM (500ms hold at end, then warp to start)">
-        <span class="ctrl-num">3</span>
-        <span>Animate Start → End ROM</span>
-        <span class="toggle-pill" id="pill-anim-rom">ON</span>
-      </button>
-
-      <div class="mode-section-header" style="margin-top: 6px; color: var(--accent-mmt);">
+      <div class="mode-section-header" style="margin-top: 4px; color: var(--accent-mmt);">
         <span>Manual Muscle Testing (MMT)</span>
         <span id="mmt-posture-badge">Seated</span>
       </div>
 
-      <!-- 4. MMT Position -->
-      <button type="button" class="ctrl-btn" id="btn-mmt" title="Place client in standardized MMT testing posture & show Stabilize/Palpate markers">
-        <span class="ctrl-num">4</span>
-        <span>MMT Test Position</span>
-      </button>
+      <div class="mmt-controls-grid">
+        <!-- 4. MMT Position -->
+        <button type="button" class="ctrl-btn" id="btn-mmt" title="Place client in standardized MMT testing posture & show Stabilize/Palpate markers">
+          <span class="ctrl-num">4</span>
+          <span class="lbl-desktop">MMT Test Position</span>
+          <span class="lbl-mobile">MMT Pos</span>
+        </button>
 
-      <!-- 5. Toggle Resistance Animation against MMT -->
-      <button type="button" class="ctrl-btn" id="btn-anim-resist" aria-pressed="false" title="Animate resisted effort with small joint movement against examiner force">
-        <span class="ctrl-num">5</span>
-        <span>Resist Against MMT</span>
-        <span class="toggle-pill" id="pill-anim-resist">OFF</span>
-      </button>
+        <!-- 5. Toggle Resistance Animation against MMT -->
+        <button type="button" class="ctrl-btn" id="btn-anim-resist" aria-pressed="false" title="Animate resisted effort with small joint movement against examiner force">
+          <span class="ctrl-num">5</span>
+          <span class="lbl-desktop">Resist Against MMT</span>
+          <span class="lbl-mobile">Resist MMT</span>
+          <span class="toggle-pill" id="pill-anim-resist">OFF</span>
+        </button>
+      </div>
     </div>
 
     <!-- Interactive ROM Angle Scrubber -->
@@ -640,6 +917,23 @@
         <span class="angle-readout" id="angle-readout">0° / 170°</span>
       </div>
       <input type="range" id="angle-slider" min="0" max="100" value="0" aria-label="Scrub movement progress" />
+    </div>
+
+    <!-- Scrollable Clinical Reference Notes (Goniometry & MMT) -->
+    <div class="clinical-card" aria-label="Clinical Goniometry and MMT Notes">
+      <div class="clinical-block">
+        <div class="clinical-tag tag-rom">Goniometry / ROM Protocol</div>
+        <div class="kv-row"><strong>Position:</strong><span id="rom-pos">Seated; elbow straight.</span></div>
+        <div class="kv-row"><strong>Axis/Arms:</strong><span id="rom-axis">Anterior acromion; stationary arm parallel to sternum; moving arm along humerus.</span></div>
+        <div class="kv-row"><strong>End-Feel:</strong><span id="rom-endfeel">Firm</span></div>
+      </div>
+      <div class="clinical-block">
+        <div class="clinical-tag tag-mmt">MMT Protocol</div>
+        <div class="kv-row"><strong>Position:</strong><span id="mmt-pos">Seated, at 90° abduction, palm down</span></div>
+        <div class="kv-row"><strong><span class="marker-dot dot-stab"></span>Stabilize:</strong><span id="mmt-stab">Top of scapula/shoulder (trap area)</span></div>
+        <div class="kv-row"><strong><span class="marker-dot dot-palp"></span>Palpate:</strong><span id="mmt-palp">Middle deltoid</span></div>
+        <div class="kv-row"><strong><span class="marker-dot dot-res"></span>Resist:</strong><span id="mmt-res">Distal humerus, push down</span></div>
+      </div>
     </div>
 
   </aside>
@@ -658,6 +952,7 @@
         <button type="button" class="cam-btn" data-cam="top">Top</button>
         <button type="button" class="cam-btn" data-cam="threequarter">Full Body 3/4</button>
         <button type="button" class="cam-btn highlight" data-cam="hand">🔍 Zoom Hand</button>
+        <button type="button" class="cam-btn highlight" id="btn-reset-view" title="Reset camera to movement plane">Reset View</button>
         <button type="button" class="cam-btn" id="btn-toggle-table" title="Toggle Exam Plinth / Hand Table">Table: Auto</button>
       </div>
     </div>
@@ -2106,6 +2401,21 @@
     const romRangeBadge   = document.getElementById('rom-range-badge');
     const mmtPostureBadge = document.getElementById('mmt-posture-badge');
     const btnToggleTable  = document.getElementById('btn-toggle-table');
+    const btnResetView    = document.getElementById('btn-reset-view');
+
+    const mobileMovementSelect = document.getElementById('mobile-movement-select');
+    const btnPrevMv            = document.getElementById('btn-prev-mv');
+    const btnNextMv            = document.getElementById('btn-next-mv');
+    const mobileHudSubtitle    = document.getElementById('mobile-hud-subtitle');
+    const mobilePosturePill    = document.getElementById('mobile-posture-pill');
+
+    const romPosEl     = document.getElementById('rom-pos');
+    const romAxisEl    = document.getElementById('rom-axis');
+    const romEndFeelEl = document.getElementById('rom-endfeel');
+    const mmtPosEl     = document.getElementById('mmt-pos');
+    const mmtStabEl    = document.getElementById('mmt-stab');
+    const mmtPalpEl    = document.getElementById('mmt-palp');
+    const mmtResEl     = document.getElementById('mmt-res');
 
     const labelGoni = document.getElementById('label-goni');
     const labelStab = document.getElementById('label-stab');
@@ -2138,12 +2448,19 @@
       const mv = MOVEMENTS[state.movementKey];
       hudTitle.textContent = mv.name;
       movementButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.movement === state.movementKey)));
+      if (mobileMovementSelect) mobileMovementSelect.value = state.movementKey;
       romRangeBadge.textContent = mv.romInfo.range;
       btnStart.title = `Show start: ${getMovementAngle(mv, mv.startPose)}°`;
       btnEnd.title = `Show end: ${getMovementAngle(mv, mv.endPose)}°`;
       mmtPostureBadge.textContent = mv.mmtPosture.replace('_hand', '').toUpperCase();
 
-
+      if (romPosEl)     romPosEl.textContent     = mv.romInfo.position;
+      if (romAxisEl)    romAxisEl.textContent    = mv.romInfo.axis;
+      if (romEndFeelEl) romEndFeelEl.textContent = mv.romInfo.endFeel;
+      if (mmtPosEl)     mmtPosEl.textContent     = mv.mmtInfo.position;
+      if (mmtStabEl)    mmtStabEl.textContent    = mv.mmtInfo.stabilize;
+      if (mmtPalpEl)    mmtPalpEl.textContent    = mv.mmtInfo.palpate;
+      if (mmtResEl)     mmtResEl.textContent     = mv.mmtInfo.resist;
     }
 
     function syncControlButtonsUI() {
@@ -2161,7 +2478,9 @@
       const mv = MOVEMENTS[state.movementKey];
       const rawPosture = (state.mode === 'mmt') ? mv.mmtPosture : mv.romPosture;
       const cleanPosture = rawPosture.replace('_hand', '');
-      postureInd.textContent = `Client: ${cleanPosture.charAt(0).toUpperCase() + cleanPosture.slice(1)}`;
+      const postureLabel = `Client: ${cleanPosture.charAt(0).toUpperCase() + cleanPosture.slice(1)}`;
+      postureInd.textContent = postureLabel;
+      if (mobilePosturePill) mobilePosturePill.textContent = postureLabel;
 
       if (state.animatingResist) {
         hudSubtitle.textContent = `5. Resisting Against MMT (${cleanPosture.toUpperCase()}) — Resisted Effort`;
@@ -2182,6 +2501,10 @@
         const deg = Math.round(getMovementAngle(mv, state.targetPose));
         hudSubtitle.textContent = `Manual ROM Scrub (${deg}° / ${mv.maxAngle}°)`;
         hudSubtitle.style.color = 'var(--accent-rom)';
+      }
+      if (mobileHudSubtitle) {
+        mobileHudSubtitle.textContent = hudSubtitle.textContent;
+        mobileHudSubtitle.style.color = hudSubtitle.style.color;
       }
       updateBodyPartHighlights((state.mode === 'mmt') ? 0.42 : 0.30);
     }
@@ -2214,8 +2537,8 @@
         // Upper Extremity (Shoulder, Elbow, Forearm)
         if (plane === 'coronal') {
           // Shoulder Abduction: Coronal XY plane -> Front normal (+Z)
-          camGoalTarget.set(-0.15, 0.88, 0.0);
-          camGoalPos.set(-0.15, 0.92, 2.25);
+          camGoalTarget.set(-0.18, 0.88, 0.0);
+          camGoalPos.set(-0.18, 0.92, 2.25);
         } else if (plane === 'sagittal' || plane === 'sagittal_ext') {
           // Shoulder Flexion / Extension: Sagittal YZ plane -> Right Lateral normal (-X)
           camGoalTarget.set(-0.195, 0.88, 0.05);
@@ -2240,6 +2563,21 @@
           camGoalTarget.set(-0.12, 0.85, 0);
           camGoalPos.set(-1.15, 1.33, 2.15);
         }
+      }
+
+      // Auto-scale camera distance on narrow portrait viewports so wide poses never clip off-screen
+      const aspect = container.clientWidth / Math.max(1, container.clientHeight);
+      if (aspect < 1.0) {
+        if (mv.category === 'hand') {
+          camGoalTarget.set(-0.18, 0.67, 0.23);
+        } else if (plane === 'coronal') {
+          camGoalTarget.set(-0.24, 0.88, 0.0);
+          camGoalPos.x = -0.24;
+        }
+        const scaleFactor = (mv.category === 'hand') ? 0.98 : 1.08;
+        const portraitScale = Math.min(1.48, Math.max(1.0, 1.0 / (aspect * scaleFactor)));
+        const offset = camGoalPos.clone().sub(camGoalTarget).multiplyScalar(portraitScale);
+        camGoalPos.copy(camGoalTarget).add(offset);
       }
       camTransitionStartTime = performance.now();
       camTransitioning = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -2807,10 +3145,13 @@
 
     function hudRects() {
       const base = container.getBoundingClientRect();
-      return Array.from(container.querySelectorAll('.hud-pill, .camera-bar, .viewport-legend')).map(el => {
-        const r = el.getBoundingClientRect();
-        return { x: r.left - base.left - 6, y: r.top - base.top - 6, w: r.width + 12, h: r.height + 12 };
-      });
+      return Array.from(container.querySelectorAll('.hud-pill, .camera-bar, .viewport-legend'))
+        .map(el => {
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return null;
+          return { x: r.left - base.left - 6, y: r.top - base.top - 6, w: r.width + 12, h: r.height + 12 };
+        })
+        .filter(Boolean);
     }
 
     function rectIsClear(rc, screenCaps, blockedRects, W, H) {
@@ -2903,13 +3244,14 @@
         if (!chosen) {
           const leftSide = ax < W / 2;
           const tx = leftSide ? 10 + lw / 2 : W - 10 - lw / 2;
-          chosen = { dx: tx - ax, dy: 0 };
+          const ty = Math.min(Math.max(ay, 10 + lh / 2), H - 10 - lh / 2);
+          chosen = { dx: tx - ax, dy: ty - ay };
         }
 
         calloutMemory[item.key] = chosen;
         const rc = mkRect(chosen.dx, chosen.dy);
-        const x = rc.x;
-        const y = rc.y;
+        const x = Math.min(Math.max(6, rc.x), Math.max(6, W - lw - 6));
+        const y = Math.min(Math.max(6, rc.y), Math.max(6, H - lh - 6));
         calloutMemory[item.key].x = x;
         calloutMemory[item.key].y = y;
 
@@ -2947,6 +3289,8 @@
     // =========================================================================
     // 6. EVENT LISTENERS
     // =========================================================================
+    const movementKeysList = Object.keys(MOVEMENTS);
+
     function selectMovement(key) {
       state.movementKey = key;
       const newMv = MOVEMENTS[state.movementKey];
@@ -2989,6 +3333,31 @@
         movementButtons[next].click();
       });
     });
+
+    if (mobileMovementSelect) {
+      mobileMovementSelect.addEventListener('change', () => {
+        selectMovement(mobileMovementSelect.value);
+      });
+    }
+    if (btnPrevMv) {
+      btnPrevMv.addEventListener('click', () => {
+        const idx = movementKeysList.indexOf(state.movementKey);
+        const prevIdx = (idx - 1 + movementKeysList.length) % movementKeysList.length;
+        selectMovement(movementKeysList[prevIdx]);
+      });
+    }
+    if (btnNextMv) {
+      btnNextMv.addEventListener('click', () => {
+        const idx = movementKeysList.indexOf(state.movementKey);
+        const nextIdx = (idx + 1) % movementKeysList.length;
+        selectMovement(movementKeysList[nextIdx]);
+      });
+    }
+    if (btnResetView) {
+      btnResetView.addEventListener('click', () => {
+        focusCameraForMovement(state.movementKey);
+      });
+    }
 
     btnStart.addEventListener('click', setStartPosition);
     btnEnd.addEventListener('click', setEndPosition);
@@ -3057,9 +3426,10 @@
     });
 
     window.addEventListener('resize', () => {
-      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.aspect = container.clientWidth / Math.max(1, container.clientHeight);
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
+      for (const k of Object.keys(calloutMemory)) delete calloutMemory[k];
     });
 
     // =========================================================================
